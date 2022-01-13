@@ -1,0 +1,14 @@
+packages: hokm-prelude, hokm-api
+with-compiler: ghc-8.10.7
+optimization: False
+documentation: False
+write-ghc-environment-files: always
+
+package *
+  documentation: True
+  ghc-options: -haddock
+               -fwrite-ide-info
+               -hiedir=.hie
+
+program-options
+  ghc-options: -haddock

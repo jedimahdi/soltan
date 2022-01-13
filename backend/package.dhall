@@ -1,0 +1,85 @@
+let default-extensions =
+    -- Based on
+    -- https://lexi-lambda.github.io/blog/2018/02/10/an-opinionated-guide-to-haskell-in-2018/
+      [ "ApplicativeDo"
+      , "Arrows"
+      , "BangPatterns"
+      , "BlockArguments"
+      , "ConstraintKinds"
+      , "DataKinds"
+      , "DefaultSignatures"
+      , "DeriveAnyClass"
+      , "DeriveFoldable"
+      , "DeriveFunctor"
+      , "DeriveGeneric"
+      , "DeriveLift"
+      , "DeriveTraversable"
+      , "DerivingStrategies"
+      , "DerivingVia"
+      , "DuplicateRecordFields"
+      , "EmptyCase"
+      , "ExistentialQuantification"
+      , "FlexibleContexts"
+      , "FlexibleInstances"
+      , "FunctionalDependencies"
+      , "GADTs"
+      , "GeneralizedNewtypeDeriving"
+      , "InstanceSigs"
+      , "KindSignatures"
+      , "LambdaCase"
+      , "MultiParamTypeClasses"
+      , "MultiWayIf"
+      , "NamedFieldPuns"
+      , "OverloadedLabels"
+      , "OverloadedStrings"
+      , "PatternSynonyms"
+      , "PolyKinds"
+      , "RankNTypes"
+      , "RecordWildCards"
+      , "ScopedTypeVariables"
+      , "StandaloneDeriving"
+      , "StrictData"
+      , "TemplateHaskell"
+      , "TupleSections"
+      , "TypeApplications"
+      , "TypeFamilies"
+      , "TypeFamilyDependencies"
+      , "TypeOperators"
+      , "ViewPatterns"
+      ]
+
+let ghc-options =
+    -- For details on warnings:
+    -- https://downloads.haskell.org/~ghc/master/users-guide/using-warnings.html
+    -- This list taken from https://medium.com/mercury-bank/enable-all-the-warnings-a0517bc081c3#
+    -- Enable all warnings with -Weverything, then disable the ones we don’t care about
+      [ "-Weverything"
+      , "-Wno-missing-exported-signatures"
+      , "-Wno-missing-import-lists"
+      , "-Wno-missing-safe-haskell-mode"
+      , "-Wno-missing-export-lists"
+      , "-Wno-implicit-prelude"
+      , "-Wno-unused-imports"
+      , "-Wno-prepositive-qualified-module"
+      , "-Wno-missed-specialisations"
+      , "-Wno-all-missed-specialisations"
+      , "-Wno-unsafe"
+      , "-Wno-safe"
+      , "-Wno-missing-local-signatures"
+      , "-Wno-monomorphism-restriction"
+      ]
+
+let package =
+      { version = "0.0.0"
+      , author = "Mahdi Seyedan"
+      , copyright = "2022 Mahdi Seyedan"
+      , build-type = "Simple"
+      , license-file = "LICENSE"
+      , extra-doc-files = [ "CHANGELOG.md" ]
+      , extra-source-files = [ "package.dhall" ]
+      , tested-with = [ "GHC == 8.10.7" ]
+      , ghc-options
+      , default-extensions
+      }
+
+in  { default-extensions, ghc-options, package }

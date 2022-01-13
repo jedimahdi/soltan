@@ -1,0 +1,223 @@
+cabal-version: 2.0
+
+-- This file has been generated from package.dhall by hpack version 0.34.6.
+--
+-- see: https://github.com/sol/hpack
+
+name:           hokm-api
+version:        0.0.0
+synopsis:       Hokm Web API
+description:    Hokm Web API
+category:       Web
+author:         Mahdi Seyedan
+maintainer:     Mahdi Seyedan
+copyright:      2022 Mahdi Seyedan
+license-file:   LICENSE
+build-type:     Simple
+tested-with:
+    GHC == 8.10.7
+extra-source-files:
+    package.dhall
+extra-doc-files:
+    CHANGELOG.md
+
+library
+  exposed-modules:
+      Hokm.Api
+      Hokm.Api.Data.Aeson.FieldErrorFormat
+      Hokm.Api.Data.Aeson.RecordErrorFormat
+      Hokm.Api.Data.Authentication
+      Hokm.Api.Data.ByteString.Password
+      Hokm.Api.Data.Card
+      Hokm.Api.Data.Game
+      Hokm.Api.Data.Id
+      Hokm.Api.Data.Jwt
+      Hokm.Api.Data.Session
+      Hokm.Api.Data.Text.EmailAddress
+      Hokm.Api.Data.Text.Username
+      Hokm.Api.Data.User
+      Hokm.Api.Effect.Database.User
+      Hokm.Api.Effect.GameState
+      Hokm.Api.Effect.Hub
+      Hokm.Api.Effect.Random
+      Hokm.Api.Effect.Scrypt
+      Hokm.Api.Network.Anatomy
+      Hokm.Api.Network.Anatomy.Api
+      Hokm.Api.Network.Anatomy.Api.Authentication
+      Hokm.Api.Network.Anatomy.Api.Game
+      Hokm.Api.Network.Anatomy.Api.User
+      Hokm.Api.Network.Anatomy.Api.Users
+      Hokm.Api.Network.Anatomy.Prelude
+      Hokm.Api.Network.Anatomy.Socket
+      Hokm.Api.Network.Anatomy.Socket.Game
+      Hokm.Api.Network.Server
+      Hokm.Api.Network.Server.Api
+      Hokm.Api.Network.Server.Api.Authentication
+      Hokm.Api.Network.Server.Api.Game
+      Hokm.Api.Network.Server.Api.User
+      Hokm.Api.Network.Server.Api.Users
+      Hokm.Api.Network.Server.Socket
+      Hokm.Api.Network.Server.Socket.Game
+      Hokm.Api.Network.Wai.Application
+      Hokm.Api.Servant.Authentication
+      Hokm.Api.Servant.Response
+  other-modules:
+      Paths_hokm_api
+  autogen-modules:
+      Paths_hokm_api
+  hs-source-dirs:
+      src
+  default-extensions:
+      ApplicativeDo
+      Arrows
+      BangPatterns
+      BlockArguments
+      ConstraintKinds
+      DataKinds
+      DefaultSignatures
+      DeriveAnyClass
+      DeriveFoldable
+      DeriveFunctor
+      DeriveGeneric
+      DeriveLift
+      DeriveTraversable
+      DerivingStrategies
+      DerivingVia
+      DuplicateRecordFields
+      EmptyCase
+      ExistentialQuantification
+      FlexibleContexts
+      FlexibleInstances
+      FunctionalDependencies
+      GADTs
+      GeneralizedNewtypeDeriving
+      InstanceSigs
+      KindSignatures
+      LambdaCase
+      MultiParamTypeClasses
+      MultiWayIf
+      NamedFieldPuns
+      OverloadedLabels
+      OverloadedStrings
+      PatternSynonyms
+      PolyKinds
+      RankNTypes
+      RecordWildCards
+      ScopedTypeVariables
+      StandaloneDeriving
+      StrictData
+      TemplateHaskell
+      TupleSections
+      TypeApplications
+      TypeFamilies
+      TypeFamilyDependencies
+      TypeOperators
+      ViewPatterns
+  ghc-options: -Weverything -Wno-missing-exported-signatures -Wno-missing-import-lists -Wno-missing-safe-haskell-mode -Wno-missing-export-lists -Wno-implicit-prelude -Wno-unused-imports -Wno-prepositive-qualified-module -Wno-missed-specialisations -Wno-all-missed-specialisations -Wno-unsafe -Wno-safe -Wno-missing-local-signatures -Wno-monomorphism-restriction -fplugin=Polysemy.Plugin
+  build-depends:
+      aeson
+    , async
+    , attoparsec
+    , base
+    , bytestring
+    , chronos
+    , co-log
+    , containers
+    , cookie
+    , either
+    , email-validate
+    , generic-lens
+    , generic-monoid
+    , hokm-prelude
+    , http-media
+    , http-types
+    , lens
+    , libjwt-typed
+    , polysemy
+    , polysemy-plugin
+    , postgresql-simple
+    , random
+    , random-shuffle
+    , relude
+    , scrypt
+    , selective
+    , servant
+    , servant-server
+    , servant-websockets
+    , split
+    , stm
+    , text
+    , uuid
+    , validation-selective
+    , wai
+    , wai-cors
+    , wai-logger
+    , warp
+    , websockets
+    , word8
+  mixins:
+      base hiding (Prelude)
+  default-language: Haskell2010
+
+executable hokm
+  main-is: Main.hs
+  other-modules:
+      Paths_hokm_api
+  autogen-modules:
+      Paths_hokm_api
+  hs-source-dirs:
+      app
+  default-extensions:
+      ApplicativeDo
+      Arrows
+      BangPatterns
+      BlockArguments
+      ConstraintKinds
+      DataKinds
+      DefaultSignatures
+      DeriveAnyClass
+      DeriveFoldable
+      DeriveFunctor
+      DeriveGeneric
+      DeriveLift
+      DeriveTraversable
+      DerivingStrategies
+      DerivingVia
+      DuplicateRecordFields
+      EmptyCase
+      ExistentialQuantification
+      FlexibleContexts
+      FlexibleInstances
+      FunctionalDependencies
+      GADTs
+      GeneralizedNewtypeDeriving
+      InstanceSigs
+      KindSignatures
+      LambdaCase
+      MultiParamTypeClasses
+      MultiWayIf
+      NamedFieldPuns
+      OverloadedLabels
+      OverloadedStrings
+      PatternSynonyms
+      PolyKinds
+      RankNTypes
+      RecordWildCards
+      ScopedTypeVariables
+      StandaloneDeriving
+      StrictData
+      TemplateHaskell
+      TupleSections
+      TypeApplications
+      TypeFamilies
+      TypeFamilyDependencies
+      TypeOperators
+      ViewPatterns
+  ghc-options: -Weverything -Wno-missing-exported-signatures -Wno-missing-import-lists -Wno-missing-safe-haskell-mode -Wno-missing-export-lists -Wno-implicit-prelude -Wno-unused-imports -Wno-prepositive-qualified-module -Wno-missed-specialisations -Wno-all-missed-specialisations -Wno-unsafe -Wno-safe -Wno-missing-local-signatures -Wno-monomorphism-restriction -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base
+    , hokm-api
+    , hokm-prelude
+  mixins:
+      base hiding (Prelude)
+  default-language: Haskell2010
