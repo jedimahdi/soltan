@@ -6,8 +6,8 @@ module Hokm.Api.Network.Server.Socket
 import qualified Data.UUID                           as UUID
 import           Hokm.Api.Data.User
 import           Hokm.Api.Effect.GameState           ( GameStateL )
-import           Hokm.Api.Effect.Random           ( RandomL )
 import           Hokm.Api.Effect.Hub                 ( HubL )
+import           Hokm.Api.Effect.Random              ( RandomL )
 import           Hokm.Api.Network.Anatomy.Socket
 import qualified Hokm.Api.Network.Server.Socket.Game as Game
 import qualified Hokm.Api.Servant.Response           as Response
