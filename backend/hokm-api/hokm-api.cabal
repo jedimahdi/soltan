@@ -30,6 +30,7 @@ library
       Hokm.Api.Data.ByteString.Password
       Hokm.Api.Data.Card
       Hokm.Api.Data.Game
+      Hokm.Api.Data.GameResponse
       Hokm.Api.Data.Id
       Hokm.Api.Data.Jwt
       Hokm.Api.Data.Session

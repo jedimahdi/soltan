@@ -8,6 +8,7 @@ import qualified Hokm.Api.Data.Authentication         as Authentication
 import           Hokm.Api.Data.Card                   ( Card )
 import           Hokm.Api.Data.Game                   ( Game )
 import qualified Hokm.Api.Data.Game                   as Game
+import qualified Hokm.Api.Data.GameResponse           as GameResponse
 import           Hokm.Api.Data.Session                ( Session )
 import qualified Hokm.Api.Data.Session                as Session
 import qualified Hokm.Api.Data.User                   as User
@@ -37,11 +38,12 @@ handleJoinGame gameId conn = do
     Just user -> do
       deck <- Random.makeSuffledDeck
       maybeGame <- GameState.modifyGame gameId <| Game.joinedGame deck (user ^. #username)
-      case maybeGame of
+      let maybeResponse  = maybeGame >>= GameResponse.mk (user ^. #username)
+      case maybeResponse of
         Nothing -> pass
-        Just game -> do
-          Hub.subscribe gameId conn
-          Hub.broadcastMessage gameId (toStrict <| Aeson.encode game)
+        Just gameRes -> do
+          Hub.subscribe gameId conn (user ^. #username)
+          Hub.broadcastMessage gameId (toStrict <| Aeson.encode gameRes)
 
           liftIO <| infinitely <| WS.receiveData @ByteString conn
           pass

@@ -5,6 +5,7 @@ module Hokm.Api.Network.Server.Api.Game
 import           Control.Lens                      ( (^.) )
 import qualified Data.Aeson                        as Aeson
 import qualified Hokm.Api.Data.Game                as Game
+import qualified Hokm.Api.Data.GameResponse        as GameResponse
 import           Hokm.Api.Data.Session             ( Session )
 import qualified Hokm.Api.Data.Session             as Session
 import qualified Hokm.Api.Data.User                as User
@@ -43,9 +44,10 @@ handleFindGame = Session.withAuthenticated \_ -> do
 handleChooseHokm :: Members '[Database.UserL, GameStateL, HubL] r => ChooseHokmRequest -> Session -> Sem r (Union ChooseHokmResponse)
 handleChooseHokm ChooseHokmRequest {..} = Session.withAuthenticated \_ -> do
   maybeGame <- GameState.modifyGame gameId <| Game.startGame suit
+
   case maybeGame of
      Just game -> do
-        Hub.broadcastMessage gameId (toStrict <| Aeson.encode game)
+        Hub.broadcastMessageWithUsername gameId (\username -> GameResponse.mk username game |> fmap Aeson.encode |> fmap toStrict)
         respond <| Response.Ok <| game
 
      _ -> do
@@ -55,30 +57,25 @@ handlePlayCard :: Members '[Database.UserL, GameStateL, HubL] r => PlayCardReque
 handlePlayCard PlayCardRequest {..} = Session.withAuthenticated \jwt -> do
   let username = jwt ^. #username
   maybeGame <- GameState.modifyGame gameId <| Game.playCard card username
+
   case maybeGame of
      Just game -> do
-       Hub.broadcastMessage gameId (toStrict <| Aeson.encode game)
+       Hub.broadcastMessageWithUsername gameId (\name -> GameResponse.mk name game |> fmap Aeson.encode |> fmap toStrict)
        respond <| Response.Ok <| game
 
      _ -> do
        respond <| Response.NotFound
 
 handleEndRound :: Members '[Database.UserL, GameStateL, HubL] r => EndRoundRequest -> Session -> Sem r (Union EndRoundResponse)
-handleEndRound EndRoundRequest {..} = Session.withAuthenticated \jwt -> do
-  undefined
---   let userId = jwt ^. #userId
---   muser <- Database.User.findById userId
---   case muser of
---     Nothing   -> respond <| Response.Unauthorized
---     Just _user -> do
---        maybeGame <- GameState.endRound gameId
---        case maybeGame of
---          Just game -> do
---            Hub.broadcastMessage gameId (toStrict <| Aeson.encode game)
---            respond <| Response.Ok <| game
---
---          _ -> do
---            respond <| Response.NotFound
+handleEndRound EndRoundRequest {..} = Session.withAuthenticated \_ -> do
+   maybeGame <- GameState.modifyGame gameId <| Game.endRound
+
+   case maybeGame of
+     Just game -> do
+       Hub.broadcastMessageWithUsername gameId (\name -> GameResponse.mk name game |> fmap Aeson.encode |> fmap toStrict)
+       respond <| Response.Ok <| game
+     _ -> do
+       respond <| Response.NotFound
 
 server :: Members '[Database.UserL , GameStateL, HubL, RandomL] r => ToServant Routes (AsServerT (Sem r))
 server = genericServerT Routes { findGame = handleFindGame, chooseHokm = handleChooseHokm, playCard = handlePlayCard, endRound = handleEndRound }

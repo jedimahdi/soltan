@@ -44,8 +44,14 @@ playerPlayCard username card players@(Players p1 p2 p3 p4)
   | p4 ^. #username == username = Players p1 p2 p3 (p4 {playedCard = Just card})
   | otherwise = players
 
+emptyMiddleCards :: Players -> Players
+emptyMiddleCards (Players p1 p2 p3 p4) = Players (p1 {playedCard = Nothing}) (p2 {playedCard = Nothing}) (p3 {playedCard = Nothing}) (p4 {playedCard = Nothing})
+
 getMiddleCards :: Players -> [Card]
 getMiddleCards (Players p1 p2 p3 p4) = catMaybes [p1 ^. #playedCard, p2 ^. #playedCard, p3 ^. #playedCard, p4 ^. #playedCard]
+
+getUsers :: Players -> [User.Username]
+getUsers (Players p1 p2 p3 p4) = [p1 ^. #username, p2 ^. #username, p3 ^. #username, p4 ^. #username]
 
 data Game
   = NotFull { id            :: Id
@@ -77,8 +83,13 @@ isNotFull :: Game -> Bool
 isNotFull NotFull {} = True
 isNotFull _          = False
 
-maxCardInSuit :: Card.Suit -> [(Int, Card)] -> Maybe Int
-maxCardInSuit suit = fmap fst . viaNonEmpty head . reverse . sortOn (view #value . snd) . filter ((==suit) . view #suit . snd)
+maxCardInSuit :: Card.Suit -> [Card] -> Maybe Card
+maxCardInSuit suit = viaNonEmpty head . sortOn (Down . view #value) . filter ((==suit) . view #suit)
+
+highestPointInSuit :: Card.Suit -> Players -> Maybe User.Username
+highestPointInSuit suit players
+  = fmap fst . viaNonEmpty head . sortOn (Down . view #value . snd) . filter ((==suit) . view #suit . snd) <| zip (getUsers players) (getMiddleCards players)
+
 
 mkPlayer :: User.Username -> Player
 mkPlayer username = Player username Nothing
@@ -110,3 +121,10 @@ playCard card username game@Started {..} = let middleCards = getMiddleCards play
                                                newPlayers = playerPlayCard username card players
                                             in game {baseSuit = newBaseSuit, players = newPlayers, turn = newTurn, hands = newHands}
 playCard _ _ game = game
+
+endRound :: Game -> Game
+endRound game@Started {..} = let middleCards = getMiddleCards players
+                                 nextTurn = highestPointInSuit trumpSuit players <|> (join <| flip highestPointInSuit players <$> baseSuit)
+                                 newPlayers = emptyMiddleCards players
+                              in game {baseSuit = Nothing, players = newPlayers, turn = nextTurn}
+endRound  game = game
