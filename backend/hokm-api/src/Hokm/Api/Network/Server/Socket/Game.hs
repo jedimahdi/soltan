@@ -38,13 +38,13 @@ handleJoinGame gameId conn = do
     Just user -> do
       deck <- Random.makeSuffledDeck
       maybeGame <- GameState.modifyGame gameId <| Game.joinedGame deck (user ^. #username)
-      let maybeResponse  = maybeGame >>= GameResponse.mk (user ^. #username)
-      case maybeResponse of
+      case maybeGame of
         Nothing -> pass
-        Just gameRes -> do
+        Just game -> do
           Hub.subscribe gameId conn (user ^. #username)
-          Hub.broadcastMessage gameId (toStrict <| Aeson.encode gameRes)
+          Hub.broadcastMessageWithUsername gameId (\username -> GameResponse.mk username game |> fmap Aeson.encode |> fmap toStrict)
 
+          liftIO <| WS.forkPingThread conn 30
           liftIO <| infinitely <| WS.receiveData @ByteString conn
           pass
 
