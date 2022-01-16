@@ -5,11 +5,14 @@ import           Control.Lens         ( view, (^.) )
 import           Data.Aeson           ( FromJSON, ToJSON )
 import           Data.Generics.Labels ()
 import           Data.List            ( (!!) )
+import qualified Data.List            as List
 import           Data.List.Split      ( chunksOf )
 import qualified Data.Map             as Map
 import           Hokm.Api.Data.Card   ( Card )
 import qualified Hokm.Api.Data.Card   as Card
 import qualified Hokm.Api.Data.User   as User
+
+type Id = UUID
 
 data Player = Player { username   :: User.Username
                      , playedCard :: Maybe Card
@@ -17,53 +20,38 @@ data Player = Player { username   :: User.Username
   deriving stock (Eq, Generic, Show)
   deriving anyclass (FromJSON, ToJSON)
 
-type Id = UUID
+mkPlayer :: User.Username -> Player
+mkPlayer username = let playedCard = Nothing in Player {..}
 
 type Hands = Map User.Username [Card]
 
-data Players = Players { p1 :: Player
-                       , p2 :: Player
-                       , p3 :: Player
-                       , p4 :: Player
-                       }
-  deriving stock (Eq, Generic, Show)
-  deriving anyclass (FromJSON, ToJSON)
+nextTurn :: [Player] -> User.Username -> Maybe User.Username
+nextTurn players turn = fmap (view #username) . fmap (\i -> players !! ((i+1) `mod` 4)) . List.elemIndex turn . fmap (view #username) <| players
 
-nextTurn :: Players -> User.Username -> Maybe User.Username
-nextTurn (Players p1 p2 p3 p4) turn | turn == p1 ^. #username = Just <| p2 ^. #username
-                                    | turn == p2 ^. #username = Just <| p3 ^. #username
-                                    | turn == p3 ^. #username = Just <| p4 ^. #username
-                                    | turn == p4 ^. #username = Just <| p1 ^. #username
-                                    | otherwise = Nothing
+playerPlayCard :: User.Username -> Card -> [Player] -> [Player]
+playerPlayCard username card
+  = fmap (\p -> if p ^. #username == username then p {playedCard = Just card} else p)
 
-playerPlayCard :: User.Username -> Card -> Players -> Players
-playerPlayCard username card players@(Players p1 p2 p3 p4)
-  | p1 ^. #username == username = Players (p1 {playedCard = Just card}) p2 p3 p4
-  | p2 ^. #username == username = Players p1 (p2 {playedCard = Just card}) p3 p4
-  | p3 ^. #username == username = Players p1 p2 (p3 {playedCard = Just card}) p4
-  | p4 ^. #username == username = Players p1 p2 p3 (p4 {playedCard = Just card})
-  | otherwise = players
+emptyMiddleCards :: [Player] -> [Player]
+emptyMiddleCards = fmap (\p -> p {playedCard = Nothing})
 
-emptyMiddleCards :: Players -> Players
-emptyMiddleCards (Players p1 p2 p3 p4) = Players (p1 {playedCard = Nothing}) (p2 {playedCard = Nothing}) (p3 {playedCard = Nothing}) (p4 {playedCard = Nothing})
+getMiddleCards :: [Player] -> [Card]
+getMiddleCards = mapMaybe (view #playedCard)
 
-getMiddleCards :: Players -> [Card]
-getMiddleCards (Players p1 p2 p3 p4) = catMaybes [p1 ^. #playedCard, p2 ^. #playedCard, p3 ^. #playedCard, p4 ^. #playedCard]
-
-getUsers :: Players -> [User.Username]
-getUsers (Players p1 p2 p3 p4) = [p1 ^. #username, p2 ^. #username, p3 ^. #username, p4 ^. #username]
+getUsers :: [Player] -> [User.Username]
+getUsers = map (view #username)
 
 data Game
   = NotFull { id            :: Id
             , joinedPlayers :: [User.Username]
             }
   | ChooseHokm { id      :: Id
-               , players :: Players
+               , players :: [Player]
                , king    :: User.Username
                , hands   :: Hands
                }
   | Started { id        :: Id
-            , players   :: Players
+            , players   :: [Player]
             , king      :: User.Username
             , trumpSuit :: Card.Suit
             , baseSuit  :: Maybe Card.Suit
@@ -86,22 +74,17 @@ isNotFull _          = False
 maxCardInSuit :: Card.Suit -> [Card] -> Maybe Card
 maxCardInSuit suit = viaNonEmpty head . sortOn (Down . view #value) . filter ((==suit) . view #suit)
 
-highestPointInSuit :: Card.Suit -> Players -> Maybe User.Username
+highestPointInSuit :: Card.Suit -> [Player] -> Maybe User.Username
 highestPointInSuit suit players
   = fmap fst . viaNonEmpty head . sortOn (Down . view #value . snd) . filter ((==suit) . view #suit . snd) <| zip (getUsers players) (getMiddleCards players)
-
-
-mkPlayer :: User.Username -> Player
-mkPlayer username = Player username Nothing
 
 mk :: Id -> Game
 mk id = NotFull {id = id, joinedPlayers = []}
 
-
 joinedGame :: [Card] -> User.Username -> Game -> Game
 joinedGame newDeck username NotFull {..}
   | length joinedPlayers == 3 = ChooseHokm { id = id
-                                           , players = Players (mkPlayer <| joinedPlayers !! 0) (mkPlayer <| joinedPlayers !! 1) (mkPlayer <| joinedPlayers !! 2) (mkPlayer username)
+                                           , players = fmap mkPlayer joinedPlayers
                                            , king = username
                                            , hands = chunksOf 13 newDeck |> zip (username : joinedPlayers) |> foldr (\(name, cs) m -> Map.insert name cs m) Map.empty
                                            }
@@ -127,4 +110,4 @@ endRound game@Started {..} = let middleCards = getMiddleCards players
                                  nextTurn = highestPointInSuit trumpSuit players <|> (join <| flip highestPointInSuit players <$> baseSuit)
                                  newPlayers = emptyMiddleCards players
                               in game {baseSuit = Nothing, players = newPlayers, turn = nextTurn}
-endRound  game = game
+endRound game = game
