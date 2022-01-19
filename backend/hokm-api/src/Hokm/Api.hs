@@ -7,6 +7,7 @@ import qualified Database.PostgreSQL.Simple       as Database
 import qualified Hokm.Api.Effect.Database.User    as Database.User
 import qualified Hokm.Api.Effect.GameState        as GameState
 import qualified Hokm.Api.Effect.Hub              as Hub
+import qualified Hokm.Api.Effect.Lobby            as Lobby
 import qualified Hokm.Api.Effect.Random           as Random
 import qualified Hokm.Api.Effect.Scrypt           as Scrypt
 import           Hokm.Api.Network.Wai.Application
@@ -37,6 +38,7 @@ main = do
   conn <- Database.connect connectionInfo
   hub <- newTVarIO Map.empty
   gameState <- newTVarIO Map.empty
+  lobby <- newTVarIO Map.empty
 
   Warp.runSettings settings . corsMiddleware <| application
     ( Servant.Handler
@@ -50,6 +52,8 @@ main = do
     . runAtomicStateTVar gameState
     . GameState.run
     . runAtomicStateTVar hub
+    . Lobby.run
+    . runAtomicStateTVar lobby
     . Hub.run
     . Random.run
     )

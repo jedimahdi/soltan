@@ -37,7 +37,7 @@ run = interpret \case
 
           AddGame game -> do
             newGame <- newTVarIO game
-            atomicModify' <| Map.insert (Game.getId game) newGame
+            atomicModify' <| Map.insert (game ^. #id) newGame
 
           DeleteGame gameId ->
             atomicModify' <| Map.delete gameId
