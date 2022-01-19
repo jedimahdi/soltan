@@ -23,8 +23,6 @@ import           Libjwt.PrivateClaims   ( Ns (..), type (->>), withNs )
 import qualified Libjwt.PrivateClaims   as Libjwt
 import qualified Web.Libjwt             as Libjwt
 
-
-
 algorithm :: Algorithm EcKeyPair
 algorithm = ECDSA256 $ FromEcPem { ecPrivKey = private, ecPubKey = public }
  where

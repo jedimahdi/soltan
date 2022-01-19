@@ -13,16 +13,13 @@ import qualified Hokm.Api.Data.Game   as Game
 import qualified Hokm.Api.Data.User   as User
 
 data GameResponse
-  = NotFull { id            :: Game.Id
-            , joinedPlayers :: [User.Username]
-            }
-  | ChooseHokm { id      :: Game.Id
-               , players :: Game.Players
+  = ChooseHokm { id      :: Game.Id
+               , players :: [Game.Player]
                , king    :: User.Username
                , cards   :: [Card]
                }
   | Started { id        :: Game.Id
-            , players   :: Game.Players
+            , players   :: [Game.Player]
             , king      :: User.Username
             , trumpSuit :: Card.Suit
             , baseSuit  :: Maybe Card.Suit
@@ -33,6 +30,8 @@ data GameResponse
   deriving anyclass (FromJSON, ToJSON)
 
 mk :: User.Username -> Game.Game -> Maybe GameResponse
-mk _ Game.NotFull {..}           = Just NotFull {..}
-mk username Game.ChooseHokm {..} = Map.lookup username hands |> fmap (\allCards -> let cards = take 5 allCards in ChooseHokm {..})
-mk username Game.Started {..}    = Map.lookup username hands |> fmap (\cards -> Started {..})
+mk username Game.Game{..} = case status of
+                                   Game.InGame trumpSuit ->
+                                     Map.lookup username hands |> fmap (\allCards -> let cards = take 5 allCards in Started {..})
+                                   Game.ChooseHokm ->
+                                     Map.lookup username hands |> fmap (\allCards -> let cards = take 5 allCards in ChooseHokm {..})

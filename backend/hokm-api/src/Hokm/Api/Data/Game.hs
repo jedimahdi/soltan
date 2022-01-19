@@ -25,51 +25,14 @@ mkPlayer username = let playedCard = Nothing in Player {..}
 
 type Hands = Map User.Username [Card]
 
-nextTurn :: [Player] -> User.Username -> Maybe User.Username
-nextTurn players turn = fmap (view #username) . fmap (\i -> players !! ((i+1) `mod` 4)) . List.elemIndex turn . fmap (view #username) <| players
-
-playerPlayCard :: User.Username -> Card -> [Player] -> [Player]
-playerPlayCard username card
-  = fmap (\p -> if p ^. #username == username then p {playedCard = Just card} else p)
-
-emptyMiddleCards :: [Player] -> [Player]
-emptyMiddleCards = fmap (\p -> p {playedCard = Nothing})
+mkHands :: [Card] -> [User.Username] -> Hands
+mkHands deck usernames = chunksOf 13 deck |> zip usernames |> foldr (\(name, cs) m -> Map.insert name cs m) Map.empty
 
 getMiddleCards :: [Player] -> [Card]
 getMiddleCards = mapMaybe (view #playedCard)
 
 getUsers :: [Player] -> [User.Username]
 getUsers = map (view #username)
-
-data Game
-  = NotFull { id            :: Id
-            , joinedPlayers :: [User.Username]
-            }
-  | ChooseHokm { id      :: Id
-               , players :: [Player]
-               , king    :: User.Username
-               , hands   :: Hands
-               }
-  | Started { id        :: Id
-            , players   :: [Player]
-            , king      :: User.Username
-            , trumpSuit :: Card.Suit
-            , baseSuit  :: Maybe Card.Suit
-            , hands     :: Hands
-            , turn      :: Maybe User.Username
-            }
-  deriving stock (Eq, Generic, Show)
-  deriving anyclass (FromJSON, ToJSON)
-
-
-getId :: Game -> Id
-getId NotFull {..}    = id
-getId ChooseHokm {..} = id
-getId Started {..}    = id
-
-isNotFull :: Game -> Bool
-isNotFull NotFull {} = True
-isNotFull _          = False
 
 maxCardInSuit :: Card.Suit -> [Card] -> Maybe Card
 maxCardInSuit suit = viaNonEmpty head . sortOn (Down . view #value) . filter ((==suit) . view #suit)
@@ -78,36 +41,102 @@ highestPointInSuit :: Card.Suit -> [Player] -> Maybe User.Username
 highestPointInSuit suit players
   = fmap fst . viaNonEmpty head . sortOn (Down . view #value . snd) . filter ((==suit) . view #suit . snd) <| zip (getUsers players) (getMiddleCards players)
 
-mk :: Id -> Game
-mk id = NotFull {id = id, joinedPlayers = []}
+data NotFull = NotFull { id            :: Id
+                       , joinedPlayers :: [User.Username]
+                       }
+  deriving stock (Eq, Generic, Show)
+  deriving anyclass (FromJSON, ToJSON)
 
-joinedGame :: [Card] -> User.Username -> Game -> Game
-joinedGame newDeck username NotFull {..}
-  | length joinedPlayers == 3 = ChooseHokm { id = id
-                                           , players = fmap mkPlayer joinedPlayers
-                                           , king = username
-                                           , hands = chunksOf 13 newDeck |> zip (username : joinedPlayers) |> foldr (\(name, cs) m -> Map.insert name cs m) Map.empty
-                                           }
-  | otherwise = NotFull {id = id, joinedPlayers = username : joinedPlayers}
-joinedGame _ _ game                 = game
+data Status
+  = ChooseHokm
+  | InGame Card.Suit
+  deriving stock (Eq, Generic, Show)
+  deriving anyclass (FromJSON, ToJSON)
 
-startGame :: Card.Suit -> Game -> Game
-startGame trumpSuit ChooseHokm {..} = Started {id = id, players = players, king = king, trumpSuit = trumpSuit, baseSuit = Nothing, hands = hands, turn = Just king}
-startGame _ game = game
+data Game = Game { id       :: Id
+                 , status   :: Status
+                 , players  :: [Player]
+                 , hands    :: Hands
+                 , king     :: User.Username
+                 , baseSuit :: Maybe Card.Suit
+                 , turn     :: Maybe User.Username
+                 }
+  deriving stock (Eq, Generic, Show)
+  deriving anyclass (FromJSON, ToJSON)
 
+data Error = WrongTurn | AlreadyStarted | NotInGame | RoundNotEnded | UsernameNotFound | EndOfRound | AlreadyPlayedCard
 
-playCard :: Card -> User.Username -> Game -> Game
-playCard card username game@Started {..} = let middleCards = getMiddleCards players
-                                               newBaseSuit = if null middleCards then Just <| card ^. #suit else baseSuit
-                                               newTurn = turn >>= nextTurn players
-                                               newHands = Map.adjust (filter (/= card)) username hands
-                                               newPlayers = playerPlayCard username card players
-                                            in game {baseSuit = newBaseSuit, players = newPlayers, turn = newTurn, hands = newHands}
-playCard _ _ game = game
+updateInGame :: (Card.Suit -> Game -> Either Error Game) -> Game -> Either Error Game
+updateInGame f game@Game {..}
+  = case status of
+      ChooseHokm       -> Left NotInGame
+      InGame trumpSuit -> f trumpSuit game
 
-endRound :: Game -> Game
-endRound game@Started {..} = let middleCards = getMiddleCards players
-                                 nextTurn = highestPointInSuit trumpSuit players <|> (join <| flip highestPointInSuit players <$> baseSuit)
-                                 newPlayers = emptyMiddleCards players
-                              in game {baseSuit = Nothing, players = newPlayers, turn = nextTurn}
-endRound game = game
+updateWhenRoundEnd :: (Card.Suit -> Game -> Either Error Game) -> Game -> Either Error Game
+updateWhenRoundEnd f game@Game {..}
+  = case status of
+      ChooseHokm       -> Left NotInGame
+      InGame trumpSuit -> case (baseSuit, length <| getMiddleCards players) of
+            (Just _, 4) -> f trumpSuit game
+            _           -> Left RoundNotEnded
+
+removeCardFromHand :: Card -> User.Username -> Game -> Either Error Game
+removeCardFromHand card username game@Game {..}
+  = case Map.lookup username hands of
+      Nothing -> Left UsernameNotFound
+      Just _  -> Right <| game { hands = Map.adjust (filter (/= card)) username hands }
+
+nextBaseSuit :: Card -> Game -> Either Error Game
+nextBaseSuit card game@Game {..}
+  = let suit = if null (getMiddleCards players) then Just <| card ^. #suit else baseSuit
+    in Right <| game {baseSuit = suit}
+
+nextTurnInRound :: Game -> Either Error Game
+nextTurnInRound game@Game {..}
+  = case (turn, length <| getMiddleCards players) of
+      (Nothing, _) -> Left EndOfRound
+      (Just _, 4) -> pure game { turn = Nothing }
+      (Just t, _) -> let newTurn = fmap (view #username) . fmap (\i -> players !! ((i+1) `mod` 4)) . List.elemIndex t . fmap (view #username) <| players
+        in pure game {turn = newTurn}
+
+nextTurnStartOfRound :: Card.Suit -> Game -> Either Error Game
+nextTurnStartOfRound trumpSuit game@Game {..}
+  = let newTurn = highestPointInSuit trumpSuit players <|> (join <| flip highestPointInSuit players <$> baseSuit)
+      in pure game {turn = newTurn}
+
+playerPlayCard :: User.Username -> Card -> Game -> Either Error Game
+playerPlayCard username card game@Game{..}
+  = let newPlayers = fmap (\p -> if p ^. #username == username then p {playedCard = Just card} else p) players
+        in pure game {players = newPlayers}
+
+emptyMiddleCards :: Game -> Either Error Game
+emptyMiddleCards game@Game{..} =
+  let newPlayers = fmap (\p -> p {playedCard = Nothing}) players
+      in pure game {players = newPlayers}
+
+emptyBaseSuit :: Game -> Either Error Game
+emptyBaseSuit game =
+  pure game {baseSuit = Nothing}
+
+joinedGame :: [Card] -> User.Username -> NotFull -> Either NotFull Game
+joinedGame newDeck username notFull@NotFull {..}
+  | length joinedPlayers == 3 = Right <| Game { id = id
+                                              , status = ChooseHokm
+                                              , players = fmap mkPlayer joinedPlayers
+                                              , hands = mkHands newDeck (username : joinedPlayers)
+                                              , king = username
+                                              , baseSuit = Nothing
+                                              , turn = Just username
+                                              }
+  | otherwise = Left <| notFull { joinedPlayers = username : joinedPlayers }
+
+startGame :: Card.Suit -> Game -> Either Error Game
+startGame trumpSuit game@Game {..} = case status of
+                                       InGame _   -> Left AlreadyStarted
+                                       ChooseHokm -> Right <| game { status = InGame trumpSuit }
+
+playCard :: Card -> User.Username -> Game -> Either Error Game
+playCard card username = updateInGame \_ -> removeCardFromHand card username <=< nextTurnInRound <=< nextBaseSuit card <=< playerPlayCard username card
+
+endRound :: Game -> Either Error Game
+endRound = updateWhenRoundEnd \trumpSuit -> emptyBaseSuit <=< emptyMiddleCards <=< nextTurnStartOfRound trumpSuit
