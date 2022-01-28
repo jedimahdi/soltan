@@ -5,7 +5,10 @@ import Data.Game as Game exposing (Game)
 import Data.Session exposing (..)
 import Effect.Api as Api
 import Effect.Store.Credential as StoreCredential
-import Element exposing (Element, el, text)
+import Element exposing (Element, el, px, text)
+import Element.Background as Background
+import Element.Border as Border
+import Element.Font as Font
 import Element.Input as Input
 import Http
 import Page exposing (Page)
@@ -63,19 +66,28 @@ updateWithAuth cred msg model =
 view : Model -> Page Msg
 view model =
     { title = "Find Game"
+    , bg = Element.rgb255 87 113 84
     , content =
-        case model.session of
-            Guest _ ->
-                text "Sign in"
+        el [ Element.paddingEach { top = 30, right = 0, left = 0, bottom = 0 }, Font.color (Element.rgb255 131 145 151) ] <|
+            case model.session of
+                Guest _ ->
+                    text "Sign in"
 
-            LoggedIn _ cred ->
-                viewAuthenticated cred model
+                LoggedIn _ cred ->
+                    viewAuthenticated cred model
     }
 
 
 viewAuthenticated : Auth.Credential -> Model -> Element Msg
 viewAuthenticated cred model =
-    Input.button [] { label = text "2v2", onPress = Just FindGameClicked }
+    Input.button
+        [ Background.color <| Element.rgb255 70 90 78
+        , Font.color <| Element.rgb255 255 255 255
+        , Element.width (px 300)
+        , Element.height (px 50)
+        , Border.rounded 5
+        ]
+        { label = el [ Element.centerX ] <| text "2v2", onPress = Just FindGameClicked }
 
 
 subscriptions : Model -> Sub Msg

@@ -292,3 +292,263 @@ spadesk =
 spadesa : Image
 spadesa =
     image "cards/spades/x2/spades_a.png"
+
+
+largeClubs2 : Image
+largeClubs2 =
+    image "cards/clubs/x4/clubs_2.png"
+
+
+largeClubs3 : Image
+largeClubs3 =
+    image "cards/clubs/x4/clubs_3.png"
+
+
+largeClubs4 : Image
+largeClubs4 =
+    image "cards/clubs/x4/clubs_4.png"
+
+
+largeClubs5 : Image
+largeClubs5 =
+    image "cards/clubs/x4/clubs_5.png"
+
+
+largeClubs6 : Image
+largeClubs6 =
+    image "cards/clubs/x4/clubs_6.png"
+
+
+largeClubs7 : Image
+largeClubs7 =
+    image "cards/clubs/x4/clubs_7.png"
+
+
+largeClubs8 : Image
+largeClubs8 =
+    image "cards/clubs/x4/clubs_8.png"
+
+
+largeClubs9 : Image
+largeClubs9 =
+    image "cards/clubs/x4/clubs_9.png"
+
+
+largeClubs10 : Image
+largeClubs10 =
+    image "cards/clubs/x4/clubs_10.png"
+
+
+largeClubsj : Image
+largeClubsj =
+    image "cards/clubs/x4/clubs_j.png"
+
+
+largeClubsq : Image
+largeClubsq =
+    image "cards/clubs/x4/clubs_q.png"
+
+
+largeClubsk : Image
+largeClubsk =
+    image "cards/clubs/x4/clubs_k.png"
+
+
+largeClubsa : Image
+largeClubsa =
+    image "cards/clubs/x4/clubs_a.png"
+
+
+largeDiamonds2 : Image
+largeDiamonds2 =
+    image "cards/diamonds/x4/diamonds_2.png"
+
+
+largeDiamonds3 : Image
+largeDiamonds3 =
+    image "cards/diamonds/x4/diamonds_3.png"
+
+
+largeDiamonds4 : Image
+largeDiamonds4 =
+    image "cards/diamonds/x4/diamonds_4.png"
+
+
+largeDiamonds5 : Image
+largeDiamonds5 =
+    image "cards/diamonds/x4/diamonds_5.png"
+
+
+largeDiamonds6 : Image
+largeDiamonds6 =
+    image "cards/diamonds/x4/diamonds_6.png"
+
+
+largeDiamonds7 : Image
+largeDiamonds7 =
+    image "cards/diamonds/x4/diamonds_7.png"
+
+
+largeDiamonds8 : Image
+largeDiamonds8 =
+    image "cards/diamonds/x4/diamonds_8.png"
+
+
+largeDiamonds9 : Image
+largeDiamonds9 =
+    image "cards/diamonds/x4/diamonds_9.png"
+
+
+largeDiamonds10 : Image
+largeDiamonds10 =
+    image "cards/diamonds/x4/diamonds_10.png"
+
+
+largeDiamondsj : Image
+largeDiamondsj =
+    image "cards/diamonds/x4/diamonds_j.png"
+
+
+largeDiamondsq : Image
+largeDiamondsq =
+    image "cards/diamonds/x4/diamonds_q.png"
+
+
+largeDiamondsk : Image
+largeDiamondsk =
+    image "cards/diamonds/x4/diamonds_k.png"
+
+
+largeDiamondsa : Image
+largeDiamondsa =
+    image "cards/diamonds/x4/diamonds_a.png"
+
+
+largeHearts2 : Image
+largeHearts2 =
+    image "cards/hearts/x4/hearts_2.png"
+
+
+largeHearts3 : Image
+largeHearts3 =
+    image "cards/hearts/x4/hearts_3.png"
+
+
+largeHearts4 : Image
+largeHearts4 =
+    image "cards/hearts/x4/hearts_4.png"
+
+
+largeHearts5 : Image
+largeHearts5 =
+    image "cards/hearts/x4/hearts_5.png"
+
+
+largeHearts6 : Image
+largeHearts6 =
+    image "cards/hearts/x4/hearts_6.png"
+
+
+largeHearts7 : Image
+largeHearts7 =
+    image "cards/hearts/x4/hearts_7.png"
+
+
+largeHearts8 : Image
+largeHearts8 =
+    image "cards/hearts/x4/hearts_8.png"
+
+
+largeHearts9 : Image
+largeHearts9 =
+    image "cards/hearts/x4/hearts_9.png"
+
+
+largeHearts10 : Image
+largeHearts10 =
+    image "cards/hearts/x4/hearts_10.png"
+
+
+largeHeartsj : Image
+largeHeartsj =
+    image "cards/hearts/x4/hearts_j.png"
+
+
+largeHeartsq : Image
+largeHeartsq =
+    image "cards/hearts/x4/hearts_q.png"
+
+
+largeHeartsk : Image
+largeHeartsk =
+    image "cards/hearts/x4/hearts_k.png"
+
+
+largeHeartsa : Image
+largeHeartsa =
+    image "cards/hearts/x4/hearts_a.png"
+
+
+largeSpades2 : Image
+largeSpades2 =
+    image "cards/spades/x4/spades_2.png"
+
+
+largeSpades3 : Image
+largeSpades3 =
+    image "cards/spades/x4/spades_3.png"
+
+
+largeSpades4 : Image
+largeSpades4 =
+    image "cards/spades/x4/spades_4.png"
+
+
+largeSpades5 : Image
+largeSpades5 =
+    image "cards/spades/x4/spades_5.png"
+
+
+largeSpades6 : Image
+largeSpades6 =
+    image "cards/spades/x4/spades_6.png"
+
+
+largeSpades7 : Image
+largeSpades7 =
+    image "cards/spades/x4/spades_7.png"
+
+
+largeSpades8 : Image
+largeSpades8 =
+    image "cards/spades/x4/spades_8.png"
+
+
+largeSpades9 : Image
+largeSpades9 =
+    image "cards/spades/x4/spades_9.png"
+
+
+largeSpades10 : Image
+largeSpades10 =
+    image "cards/spades/x4/spades_10.png"
+
+
+largeSpadesj : Image
+largeSpadesj =
+    image "cards/spades/x4/spades_j.png"
+
+
+largeSpadesq : Image
+largeSpadesq =
+    image "cards/spades/x4/spades_q.png"
+
+
+largeSpadesk : Image
+largeSpadesk =
+    image "cards/spades/x4/spades_k.png"
+
+
+largeSpadesa : Image
+largeSpadesa =
+    image "cards/spades/x4/spades_a.png"

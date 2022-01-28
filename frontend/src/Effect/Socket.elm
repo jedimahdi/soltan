@@ -1,5 +1,6 @@
 port module Effect.Socket exposing (..)
 
+import Debug
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (required)
 
@@ -45,20 +46,21 @@ onMessagesFrom : String -> Decode.Decoder a -> (a -> msg) -> Sub (Maybe msg)
 onMessagesFrom url decoder f =
     let
         handleMessage s =
-            case Decode.decodeString dataDecoder s of
-                Err _ ->
-                    Nothing
+            Debug.log s <|
+                case Decode.decodeString dataDecoder s of
+                    Err _ ->
+                        Debug.log "wtf not decode" Nothing
 
-                Ok data ->
-                    if data.url == url then
-                        case Decode.decodeString decoder data.data of
-                            Err _ ->
-                                Nothing
+                    Ok data ->
+                        if data.url == url then
+                            case Decode.decodeString decoder data.data of
+                                Err _ ->
+                                    Debug.log "noooo" Nothing
 
-                            Ok a ->
-                                Just <| f a
+                                Ok a ->
+                                    Debug.log "yess" (Just <| f a)
 
-                    else
-                        Nothing
+                        else
+                            Nothing
     in
     onMessages handleMessage

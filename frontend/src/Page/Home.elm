@@ -6,11 +6,7 @@ import Data.Session as Session exposing (Session)
 import Effect.Api as Api
 import Effect.Store.Credential as StoreCredential
 import Element exposing (Element, el, text)
-import Element.Background as Background
-import Element.Border as Border
-import Element.Events as Events
 import Element.Font as Font
-import Element.Input as Input
 import Page exposing (Page)
 import View.Card
 
@@ -39,10 +35,10 @@ update msg model =
 view : Model -> Page Msg
 view model =
     { title = "Home"
+    , bg = Element.rgb255 57 62 66
     , content =
-        Element.column []
+        Element.column [ Element.paddingEach { top = 30, right = 0, left = 0, bottom = 0 }, Font.color (Element.rgb255 131 145 151) ]
             [ el [] <| text "Home page!"
-            , View.Card.item Nothing { suit = Card.Diamond, value = Card.Ace }
             ]
     }
 

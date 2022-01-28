@@ -8,4 +8,5 @@ view : Page msg
 view =
     { title = ""
     , content = Element.text ""
+    , bg = Element.rgb255 57 62 66
     }

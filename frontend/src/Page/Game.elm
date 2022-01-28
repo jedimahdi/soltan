@@ -8,7 +8,7 @@ import Dict
 import Effect.Api as Api
 import Effect.Socket as Socket
 import Effect.Store.Credential as StoreCredential
-import Element exposing (Element, el, spacing, text)
+import Element exposing (Element, el, px, spacing, text)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Events
@@ -96,7 +96,7 @@ updateWithAuth cred msg model =
 
         PlayCard card ->
             ( model
-            , Api.playCard cred model.gameId card KingChooseHokmRequestCompleted Game.decoder
+            , Api.playCard cred model.gameId card PlayCardRequestCompleted Game.decoder
             )
 
         OnConnect ->
@@ -109,13 +109,15 @@ updateWithAuth cred msg model =
 view : Model -> Page Msg
 view model =
     { title = "Find Game"
+    , bg = Element.rgb255 87 113 84
     , content =
-        case model.session of
-            Guest _ ->
-                text "Sign in"
+        el [ Element.paddingEach { top = 30, right = 0, left = 0, bottom = 0 }, Font.color (Element.rgb255 0 0 0), Element.width Element.fill ] <|
+            case model.session of
+                Guest _ ->
+                    text "Sign in"
 
-            LoggedIn _ cred ->
-                viewAuthenticated cred model
+                LoggedIn _ cred ->
+                    viewAuthenticated cred model
     }
 
 
@@ -133,7 +135,7 @@ viewGame : Auth.Credential -> Game -> Element Msg
 viewGame cred game =
     case game of
         Game.NotFull g ->
-            viewGameNotFull cred g
+            viewGameNotFull g
 
         Game.ChooseHokm g ->
             viewChooseHokm cred g
@@ -142,63 +144,92 @@ viewGame cred game =
             viewGameStarted cred g
 
 
-viewGameNotFull : Auth.Credential -> Game.NotFullInternal -> Element Msg
-viewGameNotFull cred game =
-    Element.column [] <| List.map text game.joinedPlayers
+viewGameNotFull : Game.NotFullInternal -> Element Msg
+viewGameNotFull game =
+    Element.column [ spacing 15, Element.centerX, Font.size 24 ]
+        [ el [ Element.centerX ] <| text "Finding Opponents..."
+        , el [ Element.centerX ] <| text <| String.fromInt (List.length game.joinedPlayers) ++ "  of  4"
+        ]
 
 
 viewChooseHokm : Auth.Credential -> Game.ChooseHokmInternal -> Element Msg
 viewChooseHokm cred game =
-    Element.column []
-        [ el [] <| text "Players"
-        , Element.row [] <| List.map (\p -> text p.username) game.players
-        , el [] <| text "Hakem"
-        , text <| String.fromInt game.king
-        , case Game.king game of
-            Just kingUsername ->
-                if Auth.username cred == kingUsername then
-                    Element.row [] <| List.map viewSuit Card.suits
+    Element.column [ spacing 50, Element.width Element.fill ]
+        [ if Auth.username cred == game.king then
+            Element.column [ spacing 30, Element.centerX ]
+                [ text "You're the Hakem, choose a hokm:"
+                , Element.row
+                    [ spacing 10 ]
+                  <|
+                    List.map viewSuit Card.suits
+                ]
 
-                else
-                    text "you are not hakem"
-
-            Nothing ->
-                text "wtf2"
+          else
+            Element.column [ Element.centerX ]
+                [ text "Hakem is choosing hokm..."
+                ]
+        , el
+            [ Background.color <| Element.rgb255 70 90 78
+            , Element.width Element.fill
+            , Element.padding 40
+            , Border.rounded 5
+            ]
+          <|
+            View.Card.list [ spacing 10, Element.centerX ] { cards = game.cards, onClick = Nothing }
         ]
 
 
 viewGameStarted : Auth.Credential -> Game.StartedInternal -> Element Msg
 viewGameStarted cred game =
-    Element.column [spacing 30]
-        [ text "Player cards :"
-        , viewUserCards (Auth.username cred) game.hands
-        , text "Middle Cards:"
-        , el [] <| text "Players"
-        , Element.column [ spacing 20 ] <| List.map (viewPlayer game) game.players
+    Element.column [ spacing 30 ]
+        [ viewMiddleCards cred game.players
+        , el
+            [ Background.color <| Element.rgb255 70 90 78
+            , Element.width Element.fill
+            , Element.padding 40
+            , Border.rounded 5
+            ]
+          <|
+            View.Card.list [ spacing 10, Element.centerX ] { cards = game.cards, onClick = Just PlayCard }
         ]
 
 
-viewUserCards : String -> Game.Hands -> Element Msg
-viewUserCards username hands =
-    case Dict.get username hands of
-        Nothing ->
-            Element.none
-
-        Just cards ->
-            View.Card.list (Just PlayCard) cards
+viewMiddleCards : Auth.Credential -> List Game.Player -> Element Msg
+viewMiddleCards cred players =
+    Element.column [ Element.width Element.fill ] <|
+        viewPlayers players
 
 
-viewPlayer : Game.StartedInternal -> Game.Player -> Element Msg
-viewPlayer game player =
-    case Dict.get player.username game.hands of
-        Nothing ->
-            text "wtf3"
+viewPlayers : List Game.Player -> List (Element Msg)
+viewPlayers players =
+    case players of
+        [ p1, p2, p3, p4 ] ->
+            [ el [ Element.centerX ] <| viewPlayer p3
+            , Element.row [ spacing 180, Element.centerX ] (List.map viewPlayer [ p4, p2 ])
+            , el [ Element.centerX ] <| viewPlayer p1
+            ]
 
-        Just cards ->
-            Element.column [ spacing 5 ]
-                [ text player.username
-                , View.Card.list Nothing cards
-                ]
+        _ ->
+            []
+
+
+viewPlayer : Game.Player -> Element Msg
+viewPlayer player =
+    Element.column [ spacing 10 ]
+        [ text player.username
+        , case player.playedCard of
+            Nothing ->
+                el
+                    [ Element.width (px 100)
+                    , Element.height (px 144)
+                    , Border.rounded 5
+                    , Background.color <| Element.rgb255 70 90 78
+                    ]
+                    Element.none
+
+            Just card ->
+                View.Card.item Nothing card
+        ]
 
 
 viewSuit : Card.Suit -> Element Msg

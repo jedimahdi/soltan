@@ -9,6 +9,7 @@ import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string)
 type Route
     = Home
     | Login
+    | Logout
     | FindGame
     | Game String
 
@@ -18,6 +19,7 @@ parser =
     oneOf
         [ Parser.map Home Parser.top
         , Parser.map Login (s "login")
+        , Parser.map Logout (s "logout")
         , Parser.map FindGame (s "game" </> s "find")
         , Parser.map Game (s "game" </> string)
         ]
@@ -58,6 +60,9 @@ routeToPieces page =
 
         Login ->
             [ "login" ]
+
+        Logout ->
+            [ "logout" ]
 
         FindGame ->
             [ "game", "find" ]

@@ -5,7 +5,7 @@ import Data.Authentication as Auth exposing (Credential)
 import Data.Session as Session exposing (Session)
 import Effect.Api as Api
 import Effect.Store.Credential as StoreCredential
-import Element exposing (Element, el, text)
+import Element exposing (Element, el, px, rgb255, text)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Events
@@ -162,8 +162,9 @@ update msg model =
 view : Model -> Page Msg
 view model =
     { title = "Login"
+    , bg = Element.rgb255 57 62 66
     , content =
-        Element.column []
+        Element.column [ Element.paddingEach { top = 30, right = 0, left = 0, bottom = 0 }, Font.color (Element.rgb255 131 145 151) ]
             [ Element.column [] <| List.map viewProblem model.problems
             , viewForm model.form
             ]
@@ -186,23 +187,24 @@ viewProblem problem =
 
 viewForm : Form -> Element Msg
 viewForm form =
-    Element.column []
-        [ Input.username []
+    Element.column [ Element.spacing 20 ]
+        [ el [] <| text "Fill your information"
+        , Input.username [ Background.color (rgb255 51 56 59), Border.color (rgb255 41 46 49), Border.rounded 5 ]
             { onChange = EnteredUsername
             , text = form.username
-            , placeholder = Nothing
-            , label = Input.labelAbove [] <| text "Username"
+            , placeholder = Just <| Input.placeholder [] (text "Username")
+            , label = Input.labelHidden "Username"
             }
-        , Input.newPassword []
+        , Input.newPassword [ Background.color (rgb255 51 56 59), Border.color (rgb255 41 46 49), Border.rounded 5 ]
             { onChange = EnteredPassword
             , text = form.password
-            , placeholder = Nothing
-            , label = Input.labelAbove [] <| text "Password"
+            , placeholder = Just <| Input.placeholder [] (text "Password")
+            , label = Input.labelHidden "Password"
             , show = False
             }
-        , Input.button []
+        , Input.button [ Background.color (rgb255 153 47 83), Font.color (rgb255 220 220 220), Element.width (px 300), Element.height (px 50), Border.rounded 5, Element.mouseOver [ Background.color (rgb255 158 52 88) ] ]
             { onPress = Just SubmittedForm
-            , label = text "Sign in"
+            , label = el [ Element.centerX ] <| text "Enter"
             }
         ]
 

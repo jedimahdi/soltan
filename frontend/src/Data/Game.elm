@@ -9,34 +9,22 @@ import List
 import Tuple
 
 
-type alias Hands =
-    Dict String (List Card)
-
-
-handsDecoder : Decoder Hands
-handsDecoder =
-    Decode.dict (Decode.list Card.decoder)
-
-
 type alias Player =
-    { idx : Int
-    , username : String
-    , team : String
+    { username : String
+    , playedCard : Maybe Card
     }
 
 
 playerDecoder : Decoder Player
 playerDecoder =
     Decode.succeed Player
-        |> required "idx" Decode.int
         |> required "username" Decode.string
-        |> required "team" Decode.string
+        |> required "playedCard" (Decode.maybe Card.decoder)
 
 
 type alias NotFullInternal =
     { id : String
     , joinedPlayers : List String
-    , fullCount : Int
     }
 
 
@@ -45,15 +33,13 @@ notFullDecoder =
     Decode.succeed NotFullInternal
         |> required "id" string
         |> required "joinedPlayers" (Decode.list string)
-        |> required "fullCount" Decode.int
 
 
 type alias ChooseHokmInternal =
     { id : String
     , players : List Player
-    , king : Int
-    , hands : Hands
-    , fullCount : Int
+    , king : String
+    , cards : List Card
     }
 
 
@@ -62,21 +48,18 @@ chooseHokmDecoder =
     Decode.succeed ChooseHokmInternal
         |> required "id" string
         |> required "players" (Decode.list playerDecoder)
-        |> required "king" Decode.int
-        |> required "hands" handsDecoder
-        |> required "fullCount" Decode.int
+        |> required "king" Decode.string
+        |> required "cards" (Decode.list Card.decoder)
 
 
 type alias StartedInternal =
     { id : String
     , players : List Player
-    , king : Int
+    , king : String
     , trumpSuit : Card.Suit
     , baseSuit : Maybe Card.Suit
-    , hands : Hands
-    , turn : Maybe Int
-    , middleCards : List ( String, Card )
-    , fullCount : Int
+    , cards : List Card
+    , turn : Maybe String
     }
 
 
@@ -90,13 +73,11 @@ startedDecoder =
     Decode.succeed StartedInternal
         |> required "id" string
         |> required "players" (Decode.list playerDecoder)
-        |> required "king" Decode.int
+        |> required "king" Decode.string
         |> required "trumpSuit" Card.suitDecoder
         |> required "baseSuit" (Decode.maybe Card.suitDecoder)
-        |> required "hands" handsDecoder
-        |> required "turn" (Decode.maybe Decode.int)
-        |> required "middleCards" (Decode.list middleCardsDecoder)
-        |> required "fullCount" Decode.int
+        |> required "cards" (Decode.list Card.decoder)
+        |> required "turn" (Decode.maybe Decode.string)
 
 
 type Game
@@ -138,8 +119,3 @@ id game =
 
         Started g ->
             g.id
-
-
-king : ChooseHokmInternal -> Maybe String
-king game =
-    List.head <| List.map (\p -> p.username) <| List.filter (\p -> p.idx == game.king) game.players

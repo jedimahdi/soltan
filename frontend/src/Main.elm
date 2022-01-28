@@ -179,6 +179,9 @@ changeRouteTo maybeRoute model =
             Login.init session
                 |> updateWith Login GotLoginMsg model
 
+        Just Route.Logout ->
+            ( model, StoreCredential.logout )
+
         Just Route.FindGame ->
             FindGame.init session
                 |> updateWith FindGame GotFindGameMsg model
