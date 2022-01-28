@@ -7,12 +7,12 @@ import           Hokm.Api.Data.Card               ( Card )
 import qualified Hokm.Api.Data.Card               as Card
 import           Hokm.Api.Data.Game               ( Game )
 import qualified Hokm.Api.Data.Game               as Game
-import           Hokm.Api.Data.GameResponse       ( GameResponse )
+import           Hokm.Api.Data.GameResponse       ( GameResponse, NotFullResponse )
 import           Hokm.Api.Network.Anatomy.Prelude
 import qualified Hokm.Api.Servant.Response        as Response
 import qualified Hokm.Data.Validation             as Validation
 
-type FindGameResponse = '[Response.Ok Game , Response.Unauthorized]
+type FindGameResponse = '[Response.Ok NotFullResponse , Response.Unauthorized]
 
 
 data ChooseHokmRequest = ChooseHokmRequest { gameId :: Game.Id

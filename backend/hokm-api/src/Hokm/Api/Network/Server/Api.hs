@@ -10,6 +10,8 @@ import qualified Hokm.Api.Effect.Database.User              as Database ( UserL 
 import qualified Hokm.Api.Effect.Database.User              as Database.User
 import           Hokm.Api.Effect.GameState                  ( GameStateL )
 import           Hokm.Api.Effect.Hub                        ( HubL )
+import           Hokm.Api.Effect.Lobby                      ( LobbyL )
+import qualified Hokm.Api.Effect.Lobby                      as Lobby
 import           Hokm.Api.Effect.Random                     ( RandomL )
 import           Hokm.Api.Effect.Scrypt                     ( ScryptL )
 import           Hokm.Api.Network.Anatomy.Api
@@ -25,7 +27,7 @@ import           Servant.API.Generic
 import           Servant.Server                             ( ServerError )
 import           Servant.Server.Generic                     ( AsServerT, genericServerT )
 
-type Effects = '[GameStateL, HubL, Embed IO, ScryptL, Database.UserL, Error ServerError, RandomL]
+type Effects = '[GameStateL, HubL, Embed IO, ScryptL, Database.UserL, Error ServerError, RandomL, LobbyL]
 
 server :: Members Effects r => ToServant Routes (AsServerT (Sem r))
 server = genericServerT Routes { authentication = Authentication.server

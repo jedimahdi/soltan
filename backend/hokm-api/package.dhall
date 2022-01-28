@@ -58,6 +58,42 @@ let hokm-api =
         ]
       }
 
+let hokm-api-test =
+      { source-dirs = "test"
+      , main = "Main.hs"
+      , ghc-options = [ "-threaded", "-rtsopts", "-with-rtsopts=-N" ]
+      , dependencies =
+        [ "binary"
+        , "hokm-api"
+        , "hokm-prelude"
+        , "directory"
+        , "filepath"
+        , "free"
+        , "hedgehog"
+        , "http-client"
+        , "http-types"
+        , "lifted-async"
+        , "lifted-base"
+        , "managed"
+        , "monad-control"
+        , "port-utils"
+        , "postgres-options"
+        , "relude"
+        , "resource-pool"
+        , "servant-client"
+        , "servant-client-core"
+        , "tasty"
+        , "tasty-hedgehog"
+        , "tmp-postgres"
+        , "typed-process"
+        , "validation-selective"
+        , "transformers-base"
+        , "uuid"
+        , "containers"
+        ]
+      }
+
+
 in    Hokm.package
     ⫽ { name = "hokm-api"
       , synopsis = "Hokm Web API"
@@ -66,4 +102,5 @@ in    Hokm.package
       , dependencies
       , library = hokm-api
       , executables.hokm = hokm
+      , tests.hokm-api-test = hokm-api-test
       }

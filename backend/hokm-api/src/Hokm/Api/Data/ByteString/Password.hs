@@ -18,7 +18,7 @@ import qualified Hokm.Data.Validation                 as Validation
 
 newtype Password
   = Mk { un :: ByteString }
-  deriving newtype (Eq, Show, ToField, FromField)
+  deriving newtype (Eq, FromField, Show, ToField)
 
 pattern Password :: ByteString -> Password
 pattern Password a <- Mk a
@@ -36,4 +36,4 @@ mk :: Text -> Validation Errors Password
 mk input = Mk (encodeUtf8 input) <$ validate input
 
 validate :: Text -> Validation Errors ()
-validate input = ifS (pure $ Text.null input) (Validation.failure IsEmpty) (Validation.failureIf (Text.length input < 8) IsShort)
+validate input = ifS (pure $ Text.null input) (Validation.failure IsEmpty) (Validation.failureIf (Text.length input < 3) IsShort)

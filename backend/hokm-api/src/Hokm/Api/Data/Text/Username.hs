@@ -1,7 +1,7 @@
 module Hokm.Api.Data.Text.Username
     ( Error (..)
     , Errors
-    , Username
+    , Username (..)
     , mk
     , pattern Username
     , un

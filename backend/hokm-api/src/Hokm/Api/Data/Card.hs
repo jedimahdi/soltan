@@ -8,8 +8,9 @@ module Hokm.Api.Data.Card
 
 import           Data.Aeson           ( FromJSON, ToJSON )
 import           Data.Generics.Labels ()
+import           GHC.Show             ( Show (show) )
 
-data Suit = Club | Diamond | Heart | Spade deriving stock (Enum, Eq, Generic, Show)
+data Suit = Club | Diamond | Heart | Spade deriving stock (Enum, Eq, Generic, Ord, Show)
   deriving anyclass (FromJSON, ToJSON)
 
 data Value = Two | Three | Four | Five | Six | Seven | Eight | Nine | Ten | Jack | Queen | King | Ace deriving stock
@@ -24,8 +25,11 @@ data Value = Two | Three | Four | Five | Six | Seven | Eight | Nine | Ten | Jack
 data Card = Card { suit  :: Suit
                  , value :: Value
                  }
-  deriving stock (Eq, Generic, Show)
+  deriving stock (Eq, Generic, Ord)
   deriving anyclass (FromJSON, ToJSON)
+
+instance Show Card where
+  show Card {..} = Prelude.show suit ++ " " ++ Prelude.show value
 
 
 type Deck = [Card]

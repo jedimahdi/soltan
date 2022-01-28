@@ -52,9 +52,9 @@ main = do
     . runAtomicStateTVar gameState
     . GameState.run
     . runAtomicStateTVar hub
-    . Lobby.run
-    . runAtomicStateTVar lobby
     . Hub.run
+    . runAtomicStateTVar lobby
+    . Lobby.run
     . Random.run
     )
 
