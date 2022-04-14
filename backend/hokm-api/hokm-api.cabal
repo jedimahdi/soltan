@@ -38,11 +38,11 @@ library
       Hokm.Api.Data.Text.Username
       Hokm.Api.Data.User
       Hokm.Api.Effect.Database.User
-      Hokm.Api.Effect.GameState
+      Hokm.Api.Effect.GamesState
       Hokm.Api.Effect.Hub
-      Hokm.Api.Effect.Lobby
       Hokm.Api.Effect.Random
       Hokm.Api.Effect.Scrypt
+      Hokm.Api.Effect.WebSocket
       Hokm.Api.Network.Anatomy
       Hokm.Api.Network.Anatomy.Api
       Hokm.Api.Network.Anatomy.Api.Authentication

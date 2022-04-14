@@ -1,7 +1,7 @@
-module Hokm.Api.Effect.Hub
-    where
+module Hokm.Api.Effect.Hub where
 
 import           Control.Lens         ( view, (^.) )
+import qualified Data.Aeson           as Aeson
 import           Data.Generics.Labels ()
 import qualified Data.Map             as Map
 import           Hokm.Api.Data.Game   ( Game )
@@ -21,8 +21,8 @@ type Hubs = Map Game.Id [ConnectionData]
 
 data HubL m a where
   Subscribe :: Game.Id -> Connection -> User.Username -> HubL m ()
-  BroadcastMessage :: Game.Id -> ByteString -> HubL m ()
-  BroadcastMessageWithUsername :: Game.Id -> (User.Username -> Maybe ByteString) -> HubL m ()
+  BroadcastMessage :: Aeson.ToJSON a => Game.Id -> a -> HubL m ()
+  BroadcastMessageWithUsername :: Aeson.ToJSON a => Game.Id -> (User.Username -> Maybe a) -> HubL m ()
 
 makeSem ''HubL
 
@@ -34,7 +34,8 @@ run = interpret \case
           BroadcastMessage id message -> do
             hubs <- atomicGet
             let connections = Map.lookup id hubs |> (fmap . fmap) (view #sock)
-            forM_ connections (mapM_ (liftIO . (`sendTextData` message)))
+            let encodedMessage = message |> Aeson.encode |> toStrict
+            forM_ connections (mapM_ (liftIO . (`sendTextData` encodedMessage)))
 
           BroadcastMessageWithUsername id withUsername -> do
             hubs <- atomicGet
@@ -44,6 +45,6 @@ run = interpret \case
                 let maybeMessage = withUsername (c ^. #username)
                 case maybeMessage of
                   Just message ->
-                    liftIO <| sendTextData (c ^. #sock) message
+                    liftIO <| sendTextData (c ^. #sock) (message |> Aeson.encode |> toStrict)
                   Nothing -> pass
               Nothing -> pass

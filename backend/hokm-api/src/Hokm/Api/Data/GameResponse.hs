@@ -1,5 +1,4 @@
-module Hokm.Api.Data.GameResponse
-    where
+module Hokm.Api.Data.GameResponse where
 
 import           Control.Lens
     ( _1, _2, at, cons, elemOf, filtered, folded, has, hasn't, index, indices, itraversed, ix,
@@ -39,7 +38,10 @@ data Player = Player { username   :: User.Username
   deriving anyclass (FromJSON, ToJSON)
 
 data GameResponse
-  = ChooseHokm { id      :: Game.Id
+  = NotFull { id            :: Game.Id
+            , joinedPlayers :: [User.Username]
+            }
+  | ChooseHokm { id      :: Game.Id
                , players :: [Player]
                , king    :: User.Username
                , cards   :: [Card]
@@ -58,9 +60,11 @@ data GameResponse
 normalizePlayers :: User.Username -> [Player] -> [Player]
 normalizePlayers username players = let (f, s) = List.span ((/=username) . view #username) players
                                       in s ++ f
+mkNotFullResp :: Game.NotFull -> GameResponse
+mkNotFullResp Game.NotFull {..} = NotFull {..}
 
-mk :: User.Username -> Game.Game -> Maybe GameResponse
-mk username game@Game.Game {..} = case game ^. #players . at username of
+mk :: Game.Game -> User.Username -> Maybe GameResponse
+mk game@Game.Game {..} username = case game ^. #players . at username of
     Nothing -> Nothing
     Just p ->
       let players = game ^@.. #players . itraversed |> fmap (\x -> Player (x ^. _1) (x ^. _2 . #playedCard)) |> normalizePlayers username

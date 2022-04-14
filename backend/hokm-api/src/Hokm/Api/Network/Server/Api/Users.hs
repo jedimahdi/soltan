@@ -21,17 +21,13 @@ handleCreate = validation (respond . Response.Unprocessable) go . User.parseRawC
  where
   go :: Members '[Database.UserL , ScryptL] r => User.Creatable 'Validation.Parsed -> Sem r (Union CreateResponse)
   go creatable = do
-    -- hasConflict <- Database.User.doesExistsByUsernameOrEmailAddress (creatable ^. #username) (creatable ^. #emailAddress)
-    -- if hasConflict then respond Response.Conflict else (respond . Response.Created) =<< Database.User.create creatable
     maybeUser <- Database.User.create creatable
     case maybeUser of
       Nothing   -> respond Response.Conflict
       Just user -> respond <| Response.Created <| user
 
 handleGetAll :: Members '[Database.UserL] r => Sem r (Union GetAllResponse)
-handleGetAll = do
-  users <- Database.User.getAll
-  respond <| Response.Ok <| users
+handleGetAll = Database.User.getAll >>= respond . Response.Ok
 
 server :: Members '[Database.UserL , ScryptL] r => ToServant Routes (AsServerT (Sem r))
 server = genericServerT Routes { create = handleCreate, getAll = handleGetAll }

@@ -1,5 +1,4 @@
-module Hokm.Api.Data.Game
-    where
+module Hokm.Api.Data.Game where
 
 import           Control.Lens
     ( at, cons, elemOf, filtered, folded, has, hasn't, index, indices, itraversed, ix, traversed,
@@ -158,6 +157,22 @@ joinGame newDeck username notFull@NotFull {..}
                                              , turn = Just username
                                              }
   | otherwise = notFull |> #joinedPlayers %~ cons username |> Left
+
+
+addPlayer :: User.Username -> NotFull -> NotFull
+addPlayer username notFull = notFull |> #joinedPlayers %~ cons username
+
+newGame :: Id -> [Card] -> [User.Username] -> Game
+newGame id newDeck players = Game { id = id
+                  , status = ChooseHokm
+                  , players = mkPlayers newDeck players
+                  , king = players !! 0
+                  , baseSuit = Nothing
+                  , turn = Just <| players !! 0
+                  }
+
+isFull :: NotFull -> Bool
+isFull NotFull {..} = length joinedPlayers == 4
 
 startGame :: Card.Suit -> Game -> Either Error Game
 startGame trumpSuit game = case game ^. #status of

@@ -5,11 +5,11 @@ module Hokm.Api
 import qualified Data.Map                         as Map
 import qualified Database.PostgreSQL.Simple       as Database
 import qualified Hokm.Api.Effect.Database.User    as Database.User
-import qualified Hokm.Api.Effect.GameState        as GameState
+import qualified Hokm.Api.Effect.GamesState       as GamesState
 import qualified Hokm.Api.Effect.Hub              as Hub
-import qualified Hokm.Api.Effect.Lobby            as Lobby
 import qualified Hokm.Api.Effect.Random           as Random
 import qualified Hokm.Api.Effect.Scrypt           as Scrypt
+import qualified Hokm.Api.Effect.WebSocket        as WebSocket
 import           Hokm.Api.Network.Wai.Application
 import qualified Network.Wai                      as Wai
 import qualified Network.Wai.Handler.Warp         as Warp
@@ -26,15 +26,15 @@ port :: Int
 port = 5000
 
 connectionInfo :: Database.ConnectInfo
-connectionInfo = Database.ConnectInfo { connectHost = "localhost", connectPort = 5432, connectUser = "mahdi", connectPassword = "", connectDatabase = "hokm"}
+connectionInfo = Database.ConnectInfo { connectHost = "localhost", connectPort = 5432, connectUser = "mahdi", connectPassword = "", connectDatabase = "hokm" }
 
 corsMiddleware :: Wai.Middleware
 corsMiddleware = cors <| const <| Just policy
-  where policy = simpleCorsResourcePolicy { corsRequestHeaders = ["Content-Type", "Authorization"], corsMethods = "PUT" : simpleMethods}
+  where policy = simpleCorsResourcePolicy { corsRequestHeaders = ["Content-Type", "Authorization"], corsMethods = "PUT" : simpleMethods }
 
 main :: IO ()
 main = do
-  let settings = Warp.defaultSettings |> Warp.setPort (fromIntegral port) |> Warp.setBeforeMainLoop beforeMainLoopHook
+  let settings = Warp.defaultSettings |> Warp.setPort port |> Warp.setBeforeMainLoop beforeMainLoopHook
   conn <- Database.connect connectionInfo
   hub <- newTVarIO Map.empty
   gameState <- newTVarIO Map.empty
@@ -49,13 +49,11 @@ main = do
     . runReader conn
     . Scrypt.run
     . Database.User.run
-    . runAtomicStateTVar gameState
-    . GameState.run
     . runAtomicStateTVar hub
     . Hub.run
-    . runAtomicStateTVar lobby
-    . Lobby.run
     . Random.run
+    . GamesState.run (GamesState.Games lobby gameState)
+    . WebSocket.run
     )
 
 beforeMainLoopHook :: IO ()

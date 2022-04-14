@@ -20,10 +20,7 @@ import           Validation                        ( validation )
 
 handleProfile :: Members '[Database.UserL] r => Session -> Sem r (Union ProfileResponse)
 handleProfile = Session.withAuthenticated \jwt -> do
-  muser <- Database.User.findById (jwt ^. #userId)
-  case muser of
-    Nothing   -> respond <| Response.notFound
-    Just user -> respond <| Response.Ok <| user
+  Database.User.findById (jwt ^. #userId) >>= maybe (respond Response.notFound) (respond . Response.Ok)
 
 server :: Members '[Database.UserL , ScryptL] r => ToServant Routes (AsServerT (Sem r))
 server = genericServerT Routes { profile = handleProfile }
