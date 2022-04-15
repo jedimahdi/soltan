@@ -23,8 +23,8 @@ data GamesStateL m a where
   JoinGame :: Game.Id -> (Game.NotFull -> Either Game.NotFull Game) -> GamesStateL m (Maybe (Either Game.NotFull Game))
   FindNotFullGame :: GamesStateL m (Maybe Game.NotFull)
   AddGameToLobby :: Game.NotFull -> GamesStateL m ()
+  ModifyGame :: Game.Id -> (Game -> Either Game.Error Game) -> GamesStateL m (Either Game.Error Game)
   ModifyGameWithoutError :: Game.Id -> (Game -> Game) -> GamesStateL m (Maybe Game)
-  ModifyGame :: Game.Id -> (Game -> Either Game.Error Game) -> GamesStateL m (Maybe Game)
 
 makeSem ''GamesStateL
 
@@ -55,15 +55,15 @@ run state = interpret \case
             let maybeGame = gamesMap ^. at gameId
 
             case maybeGame of
-              Nothing -> pure Nothing
+              Nothing -> pure <| Left Game.GameNotFound
               Just gameVar -> do
                 atomically <| do
                   e <- f <$> readTVar gameVar
                   case e of
-                    Left _ -> pure Nothing
+                    Left err -> pure <| Left err
                     Right g -> do
                       writeTVar gameVar g
-                      pure <| Just g
+                      pure <| Right g
 
           ModifyGameWithoutError gameId f -> do
             gamesMap <- readTVarIO (state ^. #games)
@@ -76,5 +76,3 @@ run state = interpret \case
                   newGame <- f <$> readTVar gameVar
                   writeTVar gameVar newGame
                   pure <| Just newGame
-
-

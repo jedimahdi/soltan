@@ -13,6 +13,7 @@ import qualified Hokm.Api.Data.Game                   as Game
 import qualified Hokm.Api.Data.GameResponse           as GameResponse
 import           Hokm.Api.Data.Session                ( Session )
 import qualified Hokm.Api.Data.Session                as Session
+import qualified Hokm.Api.Data.Text.Username          as Username
 import qualified Hokm.Api.Data.User                   as User
 import qualified Hokm.Api.Effect.Database.User        as Database ( UserL )
 import qualified Hokm.Api.Effect.Database.User        as Database.User
@@ -20,6 +21,8 @@ import           Hokm.Api.Effect.GamesState           ( GamesStateL )
 import qualified Hokm.Api.Effect.GamesState           as GamesState
 import           Hokm.Api.Effect.Hub                  ( HubL )
 import qualified Hokm.Api.Effect.Hub                  as Hub
+import           Hokm.Api.Effect.Logger               ( LoggerL )
+import qualified Hokm.Api.Effect.Logger               as Logger
 import           Hokm.Api.Effect.Random               ( RandomL )
 import qualified Hokm.Api.Effect.Random               as Random
 import           Hokm.Api.Effect.WebSocket            ( WebSocketL )
@@ -34,16 +37,30 @@ import           Servant.API.Generic                  ( ToServant )
 import           Servant.Server.Generic
 import           Validation                           ( validation )
 
-handleJoinGame :: Members '[HubL, RandomL, GamesStateL, WebSocketL] r => Game.Id -> WS.Connection -> Sem r ()
-handleJoinGame gameId conn = whenJustM (WebSocket.recieveData conn) go
+handleJoinGame :: Members '[HubL, RandomL, GamesStateL, WebSocketL, LoggerL] r => Game.Id -> WS.Connection -> Sem r ()
+handleJoinGame gameId conn
+  = WebSocket.recieveData conn >>= maybe (Logger.warning wrongInformationMessage) go
   where
-    go :: Members '[HubL, RandomL, GamesStateL, WebSocketL] r => Authentication.User -> Sem r ()
+    go :: Members '[HubL, RandomL, GamesStateL, WebSocketL, LoggerL] r => Authentication.User -> Sem r ()
     go user = do
       deck <- Random.makeSuffledDeck
-      GamesState.joinGame gameId (Game.joinGame deck (user ^. #username)) >>= maybe pass \e -> do
+      GamesState.joinGame gameId (Game.joinGame deck (user ^. #username)) >>= maybe (Logger.warning gameNotFoundMessage) \e -> do
         Hub.subscribe gameId conn (user ^. #username)
+        Logger.debug <| userSubscribedMessage (user ^. #username)
         either (Hub.broadcastMessage gameId . GameResponse.mkNotFullResponse) (Hub.broadcastMessageWithUsername gameId . GameResponse.mk) e
         WebSocket.stayAlive conn
 
-server :: Members '[HubL, RandomL, GamesStateL, WebSocketL] r => ToServant Routes (AsServerT (Sem r))
+    prefixMessage :: Text
+    prefixMessage = "[Join Game] "
+
+    wrongInformationMessage :: Text
+    wrongInformationMessage = prefixMessage <> "Wrong information for authentication with game id: " <> show gameId
+
+    gameNotFoundMessage :: Text
+    gameNotFoundMessage = prefixMessage <> "Game not found with id: " <> show gameId
+
+    userSubscribedMessage :: User.Username -> Text
+    userSubscribedMessage username = prefixMessage <> "User " <> Username.un username <> " subscribed to game id " <> show gameId
+
+server :: Members '[HubL, RandomL, GamesStateL, WebSocketL, LoggerL] r => ToServant Routes (AsServerT (Sem r))
 server = genericServerT Routes { joinGame = handleJoinGame }

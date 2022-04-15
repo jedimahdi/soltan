@@ -8,7 +8,7 @@ let hokm =
       { source-dirs = "app"
       , main = "Main.hs"
       , ghc-options = [ "-threaded", "-rtsopts", "-with-rtsopts=-N" ]
-      , dependencies = [ "hokm-api", "hokm-prelude" ]
+      , dependencies = [ "hokm-api", "hokm-prelude", "postgresql-simple" ]
       }
 
 let hokm-api =

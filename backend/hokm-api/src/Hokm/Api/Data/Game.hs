@@ -63,7 +63,7 @@ data Game = Game { id       :: Id
   deriving stock (Eq, Generic, Show)
   deriving anyclass (FromJSON, ToJSON)
 
-data Error = WrongTurn | AlreadyStarted | NotInGame | RoundNotEnded | UsernameNotFound | EndOfRound | CardNotFound | WrongSuit deriving stock
+data Error = WrongTurn | AlreadyStarted | NotInGame | RoundNotEnded | UsernameNotFound | EndOfRound | CardNotFound | WrongSuit | GameNotFound deriving stock
   ( Eq
   , Generic
   , Show
@@ -149,15 +149,8 @@ emptyBaseSuit game =
 
 joinGame :: [Card] -> User.Username -> NotFull -> Either NotFull Game
 joinGame newDeck username notFull@NotFull {..}
-  | length joinedPlayers == 3 = pure <| Game { id = id
-                                             , status = ChooseHokm
-                                             , players = mkPlayers newDeck (username : joinedPlayers)
-                                             , king = username
-                                             , baseSuit = Nothing
-                                             , turn = Just username
-                                             }
+  | length joinedPlayers == 3 = pure <| newGame id newDeck (username : joinedPlayers)
   | otherwise = notFull |> #joinedPlayers %~ cons username |> Left
-
 
 addPlayer :: User.Username -> NotFull -> NotFull
 addPlayer username notFull = notFull |> #joinedPlayers %~ cons username
@@ -208,6 +201,17 @@ playCard card username game =
           |> #baseSuit .~ newSuit
           |> #turn .~ newTurn
           |> pure
+
+endRound :: Game -> Either Error Game
+endRound game@Game {..} = case (game ^. #status, baseSuit, length <| getMiddleCards players) of
+                  (ChooseHokm, _, _) -> Left NotInGame
+                  (_, Nothing, _) -> Left RoundNotEnded
+                  (InGame trumpSuit, _, _) -> let newTurn = highestPointInSuit trumpSuit players <|> (join <| flip highestPointInSuit players <$> baseSuit)
+                        in game
+                            |> #players . traversed . #playedCard .~ Nothing
+                            |> #baseSuit .~ Nothing
+                            |> #turn .~ newTurn
+                            |> pure
 
 -- updateWhenRoundEnd :: (Card.Suit -> Game -> Either Error Game) -> Game -> Either Error Game
 -- updateWhenRoundEnd f game@Game {..}

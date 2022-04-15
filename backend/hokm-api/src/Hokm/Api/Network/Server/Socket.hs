@@ -7,6 +7,7 @@ import qualified Data.UUID                           as UUID
 import           Hokm.Api.Data.User
 import           Hokm.Api.Effect.GamesState          ( GamesStateL )
 import           Hokm.Api.Effect.Hub                 ( HubL )
+import           Hokm.Api.Effect.Logger              ( LoggerL )
 import           Hokm.Api.Effect.Random              ( RandomL )
 import           Hokm.Api.Effect.WebSocket           ( WebSocketL )
 import           Hokm.Api.Network.Anatomy.Socket
@@ -20,7 +21,7 @@ import           Servant.API.Generic
 import           Servant.Server                      ( ServerError )
 import           Servant.Server.Generic              ( AsServerT, genericServerT )
 
-type Effects = '[HubL, RandomL, WebSocketL, GamesStateL]
+type Effects = '[HubL, RandomL, WebSocketL, GamesStateL, LoggerL]
 
 server :: Members Effects r => ToServant Routes (AsServerT (Sem r))
 server = genericServerT Routes { game = Game.server

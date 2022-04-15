@@ -1,19 +1,25 @@
 module Hokm.Api
-    ( main
+    ( Config (..)
+    , main
     ) where
 
+import           Colog                            ( LogAction, usingLoggerT )
 import qualified Data.Map                         as Map
 import qualified Database.PostgreSQL.Simple       as Database
 import qualified Hokm.Api.Effect.Database.User    as Database.User
 import qualified Hokm.Api.Effect.GamesState       as GamesState
 import qualified Hokm.Api.Effect.Hub              as Hub
+import qualified Hokm.Api.Effect.Logger           as Effect.Logger
 import qualified Hokm.Api.Effect.Random           as Random
 import qualified Hokm.Api.Effect.Scrypt           as Scrypt
 import qualified Hokm.Api.Effect.WebSocket        as WebSocket
 import           Hokm.Api.Network.Wai.Application
+import           Hokm.Api.Network.Wai.Cors        ( corsMiddleware )
+import           Hokm.Api.Network.Wai.Log         ( logMiddleware )
+import qualified Hokm.Logger                      as Logger
+import qualified Hokm.Logger.Message              as Logger.Message
 import qualified Network.Wai                      as Wai
 import qualified Network.Wai.Handler.Warp         as Warp
-import           Network.Wai.Middleware.Cors
 import           Polysemy                         ( runFinal )
 import           Polysemy.AtomicState             ( runAtomicStateTVar )
 import           Polysemy.Error                   ( errorToIOFinal )
@@ -22,31 +28,25 @@ import           Polysemy.Reader                  ( runReader )
 import           Prelude                          hiding ( runReader )
 import qualified Servant
 
-port :: Int
-port = 5000
+data Config = Config { port         :: Word16
+                     , logAction    :: LogAction IO Logger.Message.Minimal
+                     , dbConnection :: Database.Connection
+                     }
 
-connectionInfo :: Database.ConnectInfo
-connectionInfo = Database.ConnectInfo { connectHost = "localhost", connectPort = 5432, connectUser = "mahdi", connectPassword = "", connectDatabase = "hokm" }
-
-corsMiddleware :: Wai.Middleware
-corsMiddleware = cors <| const <| Just policy
-  where policy = simpleCorsResourcePolicy { corsRequestHeaders = ["Content-Type", "Authorization"], corsMethods = "PUT" : simpleMethods }
-
-main :: IO ()
-main = do
-  let settings = Warp.defaultSettings |> Warp.setPort port |> Warp.setBeforeMainLoop beforeMainLoopHook
-  conn <- Database.connect connectionInfo
+main :: Config -> IO ()
+main config@Config {..} = do
+  let settings = Warp.defaultSettings |> Warp.setPort (fromIntegral port) |> Warp.setBeforeMainLoop (beforeMainLoopHook config)
   hub <- newTVarIO Map.empty
   gameState <- newTVarIO Map.empty
   lobby <- newTVarIO Map.empty
 
-  Warp.runSettings settings . corsMiddleware <| application
+  Warp.runSettings settings . corsMiddleware . logMiddleware logAction <| application
     ( Servant.Handler
     . ExceptT
     . runFinal
     . errorToIOFinal
     . embedToFinal
-    . runReader conn
+    . runReader dbConnection
     . Scrypt.run
     . Database.User.run
     . runAtomicStateTVar hub
@@ -54,7 +54,8 @@ main = do
     . Random.run
     . GamesState.run (GamesState.Games lobby gameState)
     . WebSocket.run
+    . Effect.Logger.run logAction
     )
 
-beforeMainLoopHook :: IO ()
-beforeMainLoopHook = putStrLn <| "Started listening on 127.0.0.1:" <> show port <> "."
+beforeMainLoopHook :: Config -> IO ()
+beforeMainLoopHook Config { logAction, port } = usingLoggerT logAction <| Logger.info ("Started listening on 127.0.0.1:" <> show port <> ".")
