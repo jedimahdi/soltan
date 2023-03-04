@@ -1,0 +1,93 @@
+cabal-version:       2.4
+name:                soltan
+version:             0.0.0.0
+synopsis:            Hokm Game Haskell implementation
+description:         Please see the README on Github at <https://github.com/jedimahdi/soltan#readme>
+homepage:            https://github.com/jedimahdi/soltan#readme
+bug-reports:         https://github.com/jedimahdi/soltan/issues
+author:              Mahdi Seyedan
+maintainer:          jedimahdi <mahdi.se@yahoo.com>
+tested-with:         GHC == 9.2.5
+
+common common-options
+  build-depends:       base
+                     , relude
+                     , text
+                     , bytestring
+                     , containers
+                     , lens
+                     , generic-lens
+                     , aeson
+                     , flow
+                     , pointedlist
+                     , refined
+                     , random
+                     , random-shuffle
+
+  ghc-options:         -Wall
+                       -Wincomplete-uni-patterns
+                       -Wincomplete-record-updates
+                       -Wcompat
+                       -Widentities
+                       -Wredundant-constraints
+                       -fhide-source-paths
+                       -Wpartial-fields
+                       -Wno-unused-local-binds
+                       -Wno-unused-imports
+                       -Wno-unused-matches
+  mixins:   base hiding (Prelude)
+
+
+  default-language:    Haskell2010
+  default-extensions:  BangPatterns
+                       ConstraintKinds
+                       DataKinds
+                       DeriveGeneric
+                       DerivingStrategies
+                       DerivingVia
+                       FlexibleContexts
+                       FlexibleInstances
+                       GeneralizedNewtypeDeriving
+                       InstanceSigs
+                       KindSignatures
+                       LambdaCase
+                       MultiParamTypeClasses
+                       OverloadedStrings
+                       OverloadedLabels
+                       RecordWildCards
+                       ScopedTypeVariables
+                       TypeApplications
+                       TypeFamilies
+                       TypeOperators
+                       GADTs
+                       ViewPatterns
+                       PatternSynonyms
+                       BlockArguments
+
+library
+  import:              common-options
+  hs-source-dirs:      src
+  exposed-modules:     Prelude
+                       Soltan
+                       Soltan.Data.Username
+                       Soltan.Data.Game
+                       Soltan.Data.Game.Action
+                       Soltan.Data.Game.Card
+                       Soltan.Data.Game.Card.Suit
+                       Soltan.Data.Game.Card.Value
+                       Soltan.Game.Action
+  build-depends:       co-log
+
+test-suite soltan-test
+  import:              common-options
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Main.hs
+  other-modules:       Test.Soltan.Game.Action
+                       Test.Soltan.Data.Game
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       soltan
+                     , hedgehog
+                     , tasty
+                     , tasty-hedgehog
+                     , tasty-hunit
