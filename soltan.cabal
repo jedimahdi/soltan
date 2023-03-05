@@ -23,6 +23,7 @@ common common-options
                      , refined
                      , random
                      , random-shuffle
+                     , split
 
   ghc-options:         -Wall
                        -Wincomplete-uni-patterns
@@ -70,12 +71,14 @@ library
   exposed-modules:     Prelude
                        Soltan
                        Soltan.Data.Username
+                       Soltan.Data.Checker
+                       Soltan.Data.Modifier
                        Soltan.Data.Game
                        Soltan.Data.Game.Action
                        Soltan.Data.Game.Card
-                       Soltan.Data.Game.Card.Suit
-                       Soltan.Data.Game.Card.Value
                        Soltan.Game.Action
+                       Soltan.Game.Action.Checks
+                       Soltan.Game.Action.Modifiers
   build-depends:       co-log
 
 test-suite soltan-test

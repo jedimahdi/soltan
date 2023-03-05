@@ -1,69 +1,64 @@
-module Soltan.Game.Action where
+module Soltan.Game.Action
+  ( canPerformAction
+  , gameReducer
+  , Error(..)
+  ) where
 
-import Control.Lens (elemOf, ix, to, traversed)
-import Data.List.PointedList (focus)
-import Refined (unrefine)
+import Control.Lens (ix, (%~), (.~))
+import qualified Soltan.Data.Checker as Checker
 import Soltan.Data.Game (Game, Hokm (..))
 import Soltan.Data.Game.Action
 import Soltan.Data.Game.Card (Card, Suit)
+import qualified Soltan.Data.Modifier as Modifier
 import Soltan.Data.Username (Username)
-
-data Error
-  = WrongTurn
-  | AlreadyStarted
-  | NotInGame
-  | RoundNotEnded
-  | UsernameNotFound
-  | EndOfRound
-  | WrongSuit
-  | GameNotFound
-  | HokmNotChoosen
-  | HokmIsChoosen
-  | CardNotFound
+import Soltan.Game.Action.Checks
+import Soltan.Game.Action.Modifiers
 
 canPerformAction :: Action 'Unknown -> Game -> Either Error (Action 'Valid)
 canPerformAction action game =
   case action of
-    PlayCard username card   -> canPlayCard username card game
-    ChooseHokm username suit -> canChooseHokm username suit game
-    NextRound                -> canNextRound game
+    PlayCard username card   -> playCardChecks username card
+    ChooseHokm username suit -> chooseHokmChecks username suit
+    NextRound                -> nextRoundChecks
+  |> fold
+  |> Checker.run game
   |> fmap (const (unsafeStatusCoerce action))
 
-canNextRound :: Game -> Either Error ()
-canNextRound game = Right ()
+playCardChecks :: Username -> Card -> [Checker]
+playCardChecks username card
+  = [ isHokmChoosen
+    , isRightTurn username
+    , haveCard username card
+    , isRightSuitToPlay username card
+    ]
 
-canChooseHokm :: Username -> Suit -> Game -> Either Error ()
-canChooseHokm username suit game = Right ()
+chooseHokmChecks :: Username -> Suit -> [Checker]
+chooseHokmChecks username suit = []
 
-canPlayCard :: Username -> Card -> Game -> Either Error ()
-canPlayCard username card game
-  =  [ checkHokmIsChoosen game
-     , checkIsRightTurn username game
-     , checkHaveCard username card game
-     ]
-  |> sequence
-  |> void
+nextRoundChecks :: [Checker]
+nextRoundChecks = []
 
-checkHokmIsChoosen :: Game -> Either Error ()
-checkHokmIsChoosen game
-  | game ^. #hokm == NotChoosed = Left HokmNotChoosen
-  | otherwise = Right ()
+gameReducer :: Action 'Valid -> Game -> Game
+gameReducer action game =
+  case unsafeStatusCoerce @_ @'Unknown action of
+    PlayCard username card   -> playCardMods username card
+    ChooseHokm username card -> chooseHokmMods username card
+    NextRound                -> nextRoundMods
+  |> fold
+  |> Modifier.run game
 
-checkHokmIsNotChoosen :: Game -> Either Error ()
-checkHokmIsNotChoosen game
-  | game ^. #hokm == NotChoosed = Right ()
-  | otherwise = Left HokmIsChoosen
+nextRoundMods :: [Modifier]
+nextRoundMods
+  = []
 
-checkIsRightTurn :: Username -> Game -> Either Error ()
-checkIsRightTurn username game
-  | game ^. #players . focus == username = Right ()
-  | otherwise = Left WrongTurn
+chooseHokmMods :: Username -> Suit -> [Modifier]
+chooseHokmMods username suit
+  = [ chooseHokm suit
+    ]
 
-checkHaveCard :: Username -> Card -> Game -> Either Error ()
-checkHaveCard username card game
-  | elemOf (#hands .  ix username . traversed) card game = Right ()
-  | otherwise = Left CardNotFound
-
-performAction :: Action 'Valid -> Game -> Game
-performAction action game
-  = undefined
+playCardMods :: Username -> Card -> [Modifier]
+playCardMods username card
+  = [ removeCardFromHand username card
+    , nextTurn
+    , addCardToMiddle username card
+    ]

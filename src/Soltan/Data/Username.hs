@@ -1,7 +1,7 @@
 module Soltan.Data.Username
     ( Error (..)
     , Errors
-    , Username (..)
+    , Username
     , mk
     , pattern Username
     , un

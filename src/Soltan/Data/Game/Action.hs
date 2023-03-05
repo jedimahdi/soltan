@@ -2,6 +2,7 @@
 module Soltan.Data.Game.Action
   ( Action(..)
   , ActionStatus(..)
+  , Error(..)
   , unsafeStatusCoerce
   ) where
 
@@ -18,6 +19,20 @@ data Action status where
 
 deriving instance Eq (Action s)
 deriving instance Show (Action s)
+
+data Error
+  = WrongTurn
+  | AlreadyStarted
+  | NotInGame
+  | RoundNotEnded
+  | UsernameNotFound
+  | EndOfRound
+  | WrongSuit
+  | GameNotFound
+  | HokmNotChoosen
+  | HokmIsChoosen
+  | CardNotFound
+  deriving stock (Show, Eq)
 
 unsafeStatusCoerce :: Action s -> Action s'
 unsafeStatusCoerce = unsafeCoerce

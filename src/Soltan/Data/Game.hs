@@ -3,16 +3,22 @@ module Soltan.Data.Game
   , Hokm(..)
   , mk
   , Error(..)
+  , baseSuit
+  , baseSuitL
+  , haveSuit
+  , haveBaseSuit
+  , PlayedCard(..)
   )
   where
 
 import Data.Generics.Labels ()
-import Data.List.PointedList (PointedList)
+import Data.List.PointedList (PointedList, focus)
 import qualified Data.List.PointedList as PointedList
 import qualified Data.Map as Map
 import Refined (Refined, SizeEqualTo, refine)
 import Soltan.Data.Game.Card (Card, Suit)
 import Soltan.Data.Username (Username)
+import Control.Lens (view, set, Getter, to)
 
 data Hokm
   = NotChoosed
@@ -34,6 +40,20 @@ data Game = Game
   }
   deriving stock (Eq, Generic, Show)
 
+baseSuit :: Game -> Maybe Suit
+baseSuit game = game ^. #middle |> viaNonEmpty last |> fmap (view (#card . #suit))
+
+baseSuitL :: Getter Game (Maybe Suit)
+baseSuitL = to baseSuit
+
+haveSuit :: Username -> Suit -> Game -> Bool
+haveSuit username suit game = game ^. #middle |> fmap (view (#card . #suit)) |> elem suit
+
+haveBaseSuit :: Username -> Game -> Bool
+haveBaseSuit username game = case game ^. baseSuitL of
+  Nothing -> False
+  Just suit -> haveSuit username suit game
+
 data Error
   = IncorrectUserCount
   | WrongUsers
@@ -41,7 +61,7 @@ data Error
 
 mk :: [Username] -> Map Username [Card] -> [PlayedCard] -> Username -> Hokm -> Either Error Game
 mk users hands middle hakem hokm = do
-  players <- maybeToRight IncorrectUserCount <| PointedList.fromList users
+  players <- PointedList.fromList users |> fmap (set focus hakem) |> maybeToRight IncorrectUserCount
   -- unless (users == Map.keys hands) $ Left WrongUsers
   unless (hakem `elem` users) $ Left WrongUsers
   unless (length users == 4) $ Left IncorrectUserCount
