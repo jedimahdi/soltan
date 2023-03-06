@@ -1,6 +1,7 @@
 module Soltan.Data.Game
   ( Game
   , Hokm(..)
+  , Id
   , mk
   , Error(..)
   , baseSuit
@@ -11,6 +12,7 @@ module Soltan.Data.Game
   )
   where
 
+import Control.Lens (Getter, set, to, view)
 import Data.Generics.Labels ()
 import Data.List.PointedList (PointedList, focus)
 import qualified Data.List.PointedList as PointedList
@@ -18,7 +20,8 @@ import qualified Data.Map as Map
 import Refined (Refined, SizeEqualTo, refine)
 import Soltan.Data.Game.Card (Card, Suit)
 import Soltan.Data.Username (Username)
-import Control.Lens (view, set, Getter, to)
+
+type Id = Int
 
 data Hokm
   = NotChoosed
@@ -32,7 +35,8 @@ data PlayedCard = PlayedCard
   deriving stock (Eq, Generic, Show)
 
 data Game = Game
-  { players :: PointedList Username
+  { id      :: Id
+  , players :: PointedList Username
   , hands   :: Map Username [Card]
   , middle  :: [PlayedCard]
   , hokm    :: Hokm
@@ -51,7 +55,7 @@ haveSuit username suit game = game ^. #middle |> fmap (view (#card . #suit)) |> 
 
 haveBaseSuit :: Username -> Game -> Bool
 haveBaseSuit username game = case game ^. baseSuitL of
-  Nothing -> False
+  Nothing   -> False
   Just suit -> haveSuit username suit game
 
 data Error
@@ -65,4 +69,5 @@ mk users hands middle hakem hokm = do
   -- unless (users == Map.keys hands) $ Left WrongUsers
   unless (hakem `elem` users) $ Left WrongUsers
   unless (length users == 4) $ Left IncorrectUserCount
+  let id = 1
   pure $ Game {..}

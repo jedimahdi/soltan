@@ -24,6 +24,9 @@ common common-options
                      , random
                      , random-shuffle
                      , split
+                     , stm
+                     , safe-exceptions
+                     , websockets
 
   ghc-options:         -Wall
                        -Wincomplete-uni-patterns
@@ -79,6 +82,9 @@ library
                        Soltan.Game.Action
                        Soltan.Game.Action.Checks
                        Soltan.Game.Action.Modifiers
+                       Soltan.Effect.GameState
+                       Soltan.Effect.Hub
+                       Soltan.Server.Socket
   build-depends:       co-log
 
 test-suite soltan-test
