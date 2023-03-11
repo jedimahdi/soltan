@@ -1,24 +1,45 @@
 module Soltan.Server.Socket where
 
-import Soltan.Data.Username
-import Soltan.Data.Game (Game)
-import qualified Soltan.Data.Game as Game
-import Soltan.Effect.GameState
-import Soltan.Effect.Hub (MonadHub)
-import qualified Soltan.Effect.Hub as Hub
+import Control.Exception.Safe (MonadMask, finally)
+import Control.Lens (to)
+import Data.Constraint (Dict (..))
+import Data.Singletons (withSing)
 import qualified Network.WebSockets as WS
-import Control.Exception.Safe (finally, MonadMask)
+import Soltan.App.Lobby (Room, RoomStatus (..))
+import qualified Soltan.Data.Game as Game
+import Soltan.Data.Game (Game)
+import Soltan.Data.Username
+import qualified Soltan.Effect.GameState as GameState
+import Soltan.Effect.GameState (GameState)
+import qualified Soltan.Effect.Hub as Hub
+import Soltan.Effect.Hub (MonadHub)
+import qualified Soltan.Effect.Lobby as Lobby
+import Soltan.Effect.Lobby (MonadLobby)
+import Soltan.Effect.Shuffle (MonadShuffle, mkShuffledFullDeck)
 
-withConnection :: MonadHub WS.Connection m => MonadMask m => WS.Connection -> Username -> m () -> m ()
-withConnection conn username app = flip finally handleDisconnect do
-  Hub.subscribe conn username
-  app
-  Hub.stayAlive
+withConnection :: MonadHub c m => MonadMask m => c -> Username -> m () -> m () -> m ()
+withConnection conn username onDisconnect onConnect = flip finally handleDisconnect do
+  Hub.subscribe username conn
+  onConnect
+  Hub.keepConnectionAlive conn
   where
-    handleDisconnect = Hub.unsubscribe username
+    handleDisconnect = do
+      Hub.unsubscribe username
+      onDisconnect
 
-handleJoinGame :: GameState m => Game.Id -> Username -> m ()
-handleJoinGame gameId username = do
-  -- findGameById gameId >>= maybe handleNewGame handleGame
-    
-  pure ()
+handleJoinGame :: forall m. (GameState m, MonadLobby m, MonadShuffle m) => Game.Id -> Username -> m ()
+handleJoinGame gameId username = Lobby.withRoom gameId openRoom fullRoom
+  where
+    fullRoom :: Room 'Full -> m ()
+    fullRoom room = do
+      -- Hub.sendMessage
+      pure ()
+
+    openRoom :: Room 'Open -> m ()
+    openRoom room = do
+      Lobby.joinRoom username room >>= either (const pass) startGame
+
+    startGame :: Room 'Full -> m ()
+    startGame room = do
+      shuffledDeck <- mkShuffledFullDeck
+      Game.mk (room ^. #users) shuffledDeck |> either (const pass) GameState.addGame

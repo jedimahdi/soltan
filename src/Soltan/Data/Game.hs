@@ -3,23 +3,28 @@ module Soltan.Data.Game
   , Hokm(..)
   , Id
   , mk
+  , mk'
   , Error(..)
   , baseSuit
   , baseSuitL
   , haveSuit
   , haveBaseSuit
   , PlayedCard(..)
+  , playersL
+  , turnL
   )
   where
 
-import Control.Lens (Getter, set, to, view)
+import Control.Lens (Getter, set, to, view, Lens', Traversal')
 import Data.Generics.Labels ()
 import Data.List.PointedList (PointedList, focus)
 import qualified Data.List.PointedList as PointedList
 import qualified Data.Map as Map
 import Refined (Refined, SizeEqualTo, refine)
-import Soltan.Data.Game.Card (Card, Suit)
+import Soltan.Data.Game.Card (Card, Suit, Deck)
 import Soltan.Data.Username (Username)
+import Data.List.Split (chunksOf)
+import Data.List ((!!))
 
 type Id = Int
 
@@ -44,6 +49,12 @@ data Game = Game
   }
   deriving stock (Eq, Generic, Show)
 
+playersL :: Getter Game [Username]
+playersL = #players . to toList
+
+turnL :: Lens' Game Username
+turnL = #players . focus
+
 baseSuit :: Game -> Maybe Suit
 baseSuit game = game ^. #middle |> viaNonEmpty last |> fmap (view (#card . #suit))
 
@@ -63,11 +74,17 @@ data Error
   | WrongUsers
   deriving stock (Eq, Generic, Show)
 
-mk :: [Username] -> Map Username [Card] -> [PlayedCard] -> Username -> Hokm -> Either Error Game
-mk users hands middle hakem hokm = do
+mk :: [Username] -> Deck -> Either Error Game
+mk usernames deck = do
+  let hands = deck |> chunksOf 13 |> zip usernames |> Map.fromList
+  mk' usernames hands [] (usernames !! 0) NotChoosed
+
+mk' :: [Username] -> Map Username [Card] -> [PlayedCard] -> Username -> Hokm -> Either Error Game
+mk' users hands middle hakem hokm = do
   players <- PointedList.fromList users |> fmap (set focus hakem) |> maybeToRight IncorrectUserCount
   -- unless (users == Map.keys hands) $ Left WrongUsers
   unless (hakem `elem` users) $ Left WrongUsers
   unless (length users == 4) $ Left IncorrectUserCount
   let id = 1
   pure $ Game {..}
+

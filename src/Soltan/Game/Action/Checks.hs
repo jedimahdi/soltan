@@ -24,7 +24,7 @@ isHokmNotChoosen :: Checker
 isHokmNotChoosen = Checker.invert HokmNotChoosen isHokmChoosen
 
 isRightTurn :: Username -> Checker
-isRightTurn username = Checker.mk WrongTurn ((==) username . view (#players . focus))
+isRightTurn username = Checker.mk WrongTurn ((==) username . view turnL)
 
 haveCard :: Username -> Card -> Checker
 haveCard username card = Checker.mk CardNotFound (elemOf (#hands . ix username . traverse) card)

@@ -27,6 +27,10 @@ common common-options
                      , stm
                      , safe-exceptions
                      , websockets
+                     , singletons
+                     , singletons-th
+                     , constraints
+                     , MonadRandom
 
   ghc-options:         -Wall
                        -Wincomplete-uni-patterns
@@ -67,6 +71,8 @@ common common-options
                        ViewPatterns
                        PatternSynonyms
                        BlockArguments
+                       RankNTypes
+                       StandaloneDeriving
 
 library
   import:              common-options
@@ -84,6 +90,12 @@ library
                        Soltan.Game.Action.Modifiers
                        Soltan.Effect.GameState
                        Soltan.Effect.Hub
+                       Soltan.Effect.Lobby
+                       Soltan.Effect.Shuffle
+                       Soltan.App.Env
+                       Soltan.App.Monad
+                       Soltan.App.Client
+                       Soltan.App.Lobby
                        Soltan.Server.Socket
   build-depends:       co-log
 

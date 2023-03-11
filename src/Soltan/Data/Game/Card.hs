@@ -2,6 +2,8 @@ module Soltan.Data.Game.Card
   ( Card(..)
   , Value(..)
   , Suit(..)
+  , Deck
+  , fullDeck
   ) where
 
 import Data.Generics.Labels ()
@@ -23,3 +25,8 @@ data Card = Card { suit  :: Suit
                  }
   deriving stock (Eq, Show, Generic, Ord)
 
+
+type Deck = [Card]
+
+fullDeck :: Deck
+fullDeck = Card <$> [Club .. Spade] <*> [Two .. Ace]

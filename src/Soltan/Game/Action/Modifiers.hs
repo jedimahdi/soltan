@@ -35,5 +35,5 @@ nextTurn :: Modifier
 nextTurn = Modifier.mk (#players %~ next)
 
 userTurn :: Username -> Modifier
-userTurn username = Modifier.mk (#players . focus .~ username)
+userTurn username = Modifier.mk (turnL .~ username)
 
