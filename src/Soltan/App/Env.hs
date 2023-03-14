@@ -1,6 +1,6 @@
 module Soltan.App.Env where
 
-import Colog (HasLog (..), LogAction, Message)
+import Colog (HasLog (..), Message)
 import Soltan.App.Client (Clients)
 import Soltan.App.Lobby (Lobby)
 

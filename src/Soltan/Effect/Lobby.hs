@@ -5,25 +5,29 @@
 {-# LANGUAGE TemplateHaskell          #-}
 module Soltan.Effect.Lobby where
 
-import Control.Lens (at, to, (%~))
-import Data.Constraint (Dict (..))
-import qualified Data.Map as Map
-import Soltan.App.Env
-import Soltan.App.Lobby
-import Soltan.App.Monad (App)
-import qualified Soltan.Data.Game as Game
-import Soltan.Data.Username (Username)
-import Unsafe.Coerce (unsafeCoerce)
+import           Control.Lens         (at, to, (%~))
+import           Data.Constraint      (Dict (..))
+import qualified Data.Map             as Map
+import           Soltan.App.Env
+import           Soltan.App.Lobby
+import           Soltan.App.Monad     (App)
+import qualified Soltan.Data.Game     as Game
+import           Soltan.Data.Username (Username)
+import           Unsafe.Coerce        (unsafeCoerce)
 
 class Monad m => MonadLobby m where
   withRoom :: Game.Id -> (Room 'Open -> m ()) -> (Room 'Full -> m ()) -> m ()
   joinRoom :: Username -> Room 'Open -> m (Either (Room 'Open) (Room 'Full))
   leaveRoom :: Username -> Room 'Open -> m (Room 'Open)
+  addRoom :: Room 'Open -> m ()
+  getRooms :: m [SomeRoom]
 
 instance MonadLobby App where
   withRoom = withRoomImpl
   joinRoom = joinRoomImpl
   leaveRoom = leaveRoomImpl
+  addRoom = addRoomImpl
+  getRooms = getRoomsImpl
 
 type WithLobby r m = (MonadReader r m, Has Lobby r, MonadIO m)
 
@@ -61,4 +65,16 @@ leaveRoomImpl username room = do
   lobbyVar <- grab @Lobby
   atomically <| modifyTVar' lobbyVar (Map.insert roomId (SomeRoom room'))
   pure room'
+
+addRoomImpl :: WithLobby r m => Room 'Open -> m ()
+addRoomImpl room = do
+  let roomId = room ^. #id
+  lobbyVar <- grab @Lobby
+  atomically <| modifyTVar' lobbyVar (Map.insert roomId (SomeRoom room))
+
+getRoomsImpl :: WithLobby r m => m [SomeRoom]
+getRoomsImpl = do
+  lobbyVar <- grab @Lobby
+  lobbyMap <- readTVarIO lobbyVar
+  pure <| Map.elems lobbyMap
 

@@ -7,23 +7,22 @@ module Soltan.Data.Username
     , un
     ) where
 
-import           Data.Aeson                           ( FromJSON, FromJSONKey, ToJSON, ToJSONKey )
-import qualified Data.Text                            as Text
+import           Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey)
+import qualified Data.Text  as Text
 
 newtype Username
   = Mk { un :: Text }
-  deriving newtype
-  ( Eq
-  , Ord
-  , Show
-  )
+  deriving newtype (Eq, FromJSON, Ord, Show, ToJSON)
 
 
 pattern Username :: Text -> Username
 pattern Username a <- Mk a
 {-# COMPLETE Username #-}
 
-data Error = IsEmpty | IsShort | IsLong | IsInvalid deriving stock (Generic, Show)
+data Error = IsEmpty | IsShort | IsLong | IsInvalid deriving stock
+    ( Generic
+    , Show
+    )
   -- deriving (ToJSON) via Aeson.FieldErrorFormat Error
   -- deriving (FromJSON) via Aeson.FieldErrorFormat Error
 

@@ -1,10 +1,10 @@
 module Soltan.Effect.GameState where
 
-import Soltan.Data.Game.Action
-import Soltan.Game.Action
-import Soltan.Data.Game (Game)
-import Soltan.Data.Username (Username)
-import qualified Soltan.Data.Game as Game
+import qualified Soltan.Data.Game        as Game
+import           Soltan.Data.Game        (Game)
+import           Soltan.Data.Game.Action
+import           Soltan.Data.Username    (Username)
+import           Soltan.Game.Action
 
 class Monad m => GameState m where
   dispatchAction :: Game.Id -> Action 'Unknown -> m ()

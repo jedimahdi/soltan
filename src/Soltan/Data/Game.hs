@@ -1,52 +1,54 @@
 module Soltan.Data.Game
-  ( Game
-  , Hokm(..)
-  , Id
-  , mk
-  , mk'
-  , Error(..)
-  , baseSuit
-  , baseSuitL
-  , haveSuit
-  , haveBaseSuit
-  , PlayedCard(..)
-  , playersL
-  , turnL
-  )
-  where
+    ( Error (..)
+    , Game
+    , Hokm (..)
+    , Id
+    , PlayedCard (..)
+    , baseSuit
+    , baseSuitL
+    , haveBaseSuit
+    , haveSuit
+    , mk
+    , mk'
+    , playersL
+    , turnL
+    ) where
 
-import Control.Lens (Getter, set, to, view, Lens', Traversal')
-import Data.Generics.Labels ()
-import Data.List.PointedList (PointedList, focus)
+import           Control.Lens          (Getter, Lens', Traversal', set, to,
+                                        view)
+import           Data.Generics.Labels  ()
+import           Data.List             ((!!))
+import           Data.List.PointedList (PointedList, focus)
 import qualified Data.List.PointedList as PointedList
-import qualified Data.Map as Map
-import Refined (Refined, SizeEqualTo, refine)
-import Soltan.Data.Game.Card (Card, Suit, Deck)
-import Soltan.Data.Username (Username)
-import Data.List.Split (chunksOf)
-import Data.List ((!!))
+import           Data.List.Split       (chunksOf)
+import qualified Data.Map              as Map
+import           Refined               (Refined, SizeEqualTo, refine)
+import           Soltan.Data.Game.Card (Card, Deck, Suit)
+import           Soltan.Data.Username  (Username)
 
-type Id = Int
+type Id = UUID
 
 data Hokm
   = NotChoosed
   | Choosed Suit
   deriving stock (Eq, Generic, Show)
 
-data PlayedCard = PlayedCard
-  { card     :: Card
-  , username :: Username
-  }
+data PlayedCard
+  = PlayedCard
+      { card     :: Card
+      , username :: Username
+      }
   deriving stock (Eq, Generic, Show)
 
-data Game = Game
-  { id      :: Id
-  , players :: PointedList Username
-  , hands   :: Map Username [Card]
-  , middle  :: [PlayedCard]
-  , hokm    :: Hokm
-  , hakem   :: Username
-  }
+data Game
+  = Game
+      { id      :: Id
+      , players :: PointedList Username
+      , hands   :: Map Username [Card]
+      , middle  :: [PlayedCard]
+      , hokm    :: Hokm
+      , hakem   :: Username
+      }
   deriving stock (Eq, Generic, Show)
 
 playersL :: Getter Game [Username]
@@ -69,10 +71,7 @@ haveBaseSuit username game = case game ^. baseSuitL of
   Nothing   -> False
   Just suit -> haveSuit username suit game
 
-data Error
-  = IncorrectUserCount
-  | WrongUsers
-  deriving stock (Eq, Generic, Show)
+data Error = IncorrectUserCount | WrongUsers deriving stock (Eq, Generic, Show)
 
 mk :: [Username] -> Deck -> Either Error Game
 mk usernames deck = do
@@ -85,6 +84,6 @@ mk' users hands middle hakem hokm = do
   -- unless (users == Map.keys hands) $ Left WrongUsers
   unless (hakem `elem` users) $ Left WrongUsers
   unless (length users == 4) $ Left IncorrectUserCount
-  let id = 1
+  -- let id = 1
   pure $ Game {..}
 

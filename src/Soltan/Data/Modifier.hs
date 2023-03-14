@@ -1,8 +1,8 @@
 module Soltan.Data.Modifier
-  ( Modifier
-  , mk
-  , run
-  ) where
+    ( Modifier
+    , mk
+    , run
+    ) where
 
 type Modifier a = Endo a
 

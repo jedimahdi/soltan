@@ -1,13 +1,13 @@
 {-# LANGUAGE FunctionalDependencies #-}
 module Soltan.Effect.Hub where
 
-import Control.Lens (at, sans)
-import qualified Data.Map as Map
-import qualified Network.WebSockets as WS
-import Soltan.App.Client (Client (..), Clients)
-import Soltan.App.Env (Has (..), grab)
-import Soltan.App.Monad (App)
-import Soltan.Data.Username (Username)
+import           Control.Lens         (at, sans)
+import qualified Data.Map             as Map
+import qualified Network.WebSockets   as WS
+import           Soltan.App.Client    (Client (..), Clients)
+import           Soltan.App.Env       (Has (..), grab)
+import           Soltan.App.Monad     (App)
+import           Soltan.Data.Username (Username)
 
 class Monad m => MonadHub c m | m -> c where
   subscribe   :: Username -> c -> m ()
