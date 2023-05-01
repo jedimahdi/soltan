@@ -32,6 +32,10 @@ common common-options
                      , constraints
                      , MonadRandom
                      , uuid
+                     , ansi-terminal
+                     , chronos
+                     , wai-logger
+                     , vector
 
   ghc-options:         -Wall
                        -Wincomplete-uni-patterns
@@ -74,6 +78,8 @@ common common-options
                        BlockArguments
                        RankNTypes
                        StandaloneDeriving
+                       NamedFieldPuns
+                       DeriveAnyClass
 
 library
   import:              common-options
@@ -81,9 +87,10 @@ library
   exposed-modules:     Prelude
                        Soltan
                        Soltan.Data.Username
-                       Soltan.Data.Checker
-                       Soltan.Data.Modifier
+                       Soltan.Data.Monoid.Checker
+                       Soltan.Data.Monoid.Modifier
                        Soltan.Data.Game
+                       Soltan.Data.UserGame
                        Soltan.Data.Game.Action
                        Soltan.Data.Game.Card
                        Soltan.Game.Action
@@ -99,6 +106,13 @@ library
                        Soltan.App.Client
                        Soltan.App.Lobby
                        Soltan.App.Error
+                       Soltan.Chronos
+                       Soltan.Logger
+                       Soltan.Logger.Message
+                       Soltan.Logger.Formatting
+                       Soltan.Logger.Severity
+                       Soltan.Network.Wai.Log
+                       Soltan.Network.Wai.Cors
                        Soltan.Server
                        Soltan.Server.Prelude
                        Soltan.Server.Api
@@ -110,6 +124,7 @@ library
                      , servant
                      , servant-server
                      , http-types
+                     , network
                      , case-insensitive
                      , bcrypt
                      , mtl
@@ -118,6 +133,8 @@ library
                      , warp 
                      , postgresql-simple-named
                      , servant-websockets
+                     , wai
+                     , wai-cors
 
 executable soltan
   import:              common-options

@@ -1,5 +1,5 @@
 {-# LANGUAGE RankNTypes #-}
-module Soltan.Data.Checker
+module Soltan.Data.Monoid.Checker
   ( Checker
   , run
   , mk

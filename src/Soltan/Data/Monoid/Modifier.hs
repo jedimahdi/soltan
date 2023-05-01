@@ -1,4 +1,4 @@
-module Soltan.Data.Modifier
+module Soltan.Data.Monoid.Modifier
     ( Modifier
     , mk
     , run

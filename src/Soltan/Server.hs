@@ -9,9 +9,10 @@ import Soltan.App.Monad (App, runAppAsIO)
 import Soltan.App.Error (AppError, toHttpError)
 import Control.Monad.Except (liftEither)
 import Colog (LogAction, Message, Msg (..), Severity, filterBySeverity, richMessageAction)
+import qualified Soltan.Logger as Logger
 
 logMPErrorIO :: AppEnv -> AppError -> IO (Either AppError ())
-logMPErrorIO env err = runAppAsIO env $ log E $ show err
+logMPErrorIO env err = runAppAsIO env $ Logger.error $ show err
 
 runAppAsHandler :: AppEnv -> App a -> Handler a
 runAppAsHandler env app = do

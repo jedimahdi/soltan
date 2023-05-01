@@ -1,8 +1,4 @@
-{-# LANGUAGE FunctionalDependencies   #-}
 {-# LANGUAGE KindSignatures           #-}
-{-# LANGUAGE StandaloneDeriving       #-}
-{-# LANGUAGE StandaloneKindSignatures #-}
-{-# LANGUAGE TemplateHaskell          #-}
 module Soltan.Effect.Lobby where
 
 import           Control.Lens         (at, to, (%~))
@@ -14,6 +10,8 @@ import           Soltan.App.Monad     (App)
 import qualified Soltan.Data.Game     as Game
 import           Soltan.Data.Username (Username)
 import           Unsafe.Coerce        (unsafeCoerce)
+import qualified Soltan.Effect.Hub as Hub
+import Soltan.Effect.Hub (MonadHub)
 
 class Monad m => MonadLobby m where
   withRoom :: Game.Id -> (Room 'Open -> m ()) -> (Room 'Full -> m ()) -> m ()
@@ -28,6 +26,15 @@ instance MonadLobby App where
   leaveRoom = leaveRoomImpl
   addRoom = addRoomImpl
   getRooms = getRoomsImpl
+
+broadcastRoom :: forall m a t. (ToJSON a, MonadLobby m, MonadHub m, Foldable t) => (Username -> t a) -> Game.Id -> m ()
+broadcastRoom mkMsg gameId = withRoom gameId broadcast broadcast
+  where
+    broadcast :: Room s -> m ()
+    broadcast room = traverse_ (\username -> Hub.sendJSON (mkMsg username) username) (room ^. #users)
+
+broadcastRoom' :: (ToJSON a, MonadHub m, MonadLobby m) => a -> Game.Id -> m ()
+broadcastRoom' msg = broadcastRoom (const . Just <| msg) 
 
 type WithLobby r m = (MonadReader r m, Has Lobby r, MonadIO m)
 

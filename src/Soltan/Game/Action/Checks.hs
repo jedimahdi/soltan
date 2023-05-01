@@ -9,7 +9,7 @@ module Soltan.Game.Action.Checks
 
 import Control.Lens (at, elemOf, folded, ix, non, traversed, view)
 import Data.List.PointedList
-import qualified Soltan.Data.Checker as Checker
+import qualified Soltan.Data.Monoid.Checker as Checker
 import Soltan.Data.Game hiding (Error)
 import Soltan.Data.Game.Action
 import Soltan.Data.Game.Card

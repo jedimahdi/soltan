@@ -8,7 +8,7 @@ module Soltan.Game.Action.Modifiers
   , chooseHokm
   ) where
 
-import qualified Soltan.Data.Modifier as Modifier
+import qualified Soltan.Data.Monoid.Modifier as Modifier
 import Control.Lens (ix, (%~), (.~))
 import Soltan.Data.Game
 import Soltan.Data.Game.Card (Card, Suit)

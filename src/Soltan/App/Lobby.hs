@@ -24,7 +24,7 @@ data Room (s :: RoomStatus)
       , users  :: [Username]
       , status :: RoomStatus
       }
-  deriving stock (Generic)
+  deriving stock (Generic, Show)
   deriving (ToJSON)
 
 data SomeRoom where

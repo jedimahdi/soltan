@@ -5,11 +5,11 @@ module Soltan.Game.Action
   ) where
 
 import Control.Lens (ix, (%~), (.~))
-import qualified Soltan.Data.Checker as Checker
+import qualified Soltan.Data.Monoid.Checker as Checker
 import Soltan.Data.Game (Game, Hokm (..))
 import Soltan.Data.Game.Action
 import Soltan.Data.Game.Card (Card, Suit)
-import qualified Soltan.Data.Modifier as Modifier
+import qualified Soltan.Data.Monoid.Modifier as Modifier
 import Soltan.Data.Username (Username)
 import Soltan.Game.Action.Checks
 import Soltan.Game.Action.Modifiers

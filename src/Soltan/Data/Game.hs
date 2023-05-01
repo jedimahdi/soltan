@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use head" #-}
 module Soltan.Data.Game
     ( Error (..)
     , Game
@@ -39,6 +41,7 @@ data PlayedCard
       , username :: Username
       }
   deriving stock (Eq, Generic, Show)
+  deriving anyclass (ToJSON)
 
 data Game
   = Game
@@ -73,17 +76,16 @@ haveBaseSuit username game = case game ^. baseSuitL of
 
 data Error = IncorrectUserCount | WrongUsers deriving stock (Eq, Generic, Show)
 
-mk :: [Username] -> Deck -> Either Error Game
-mk usernames deck = do
+mk :: Id -> [Username] -> Deck -> Either Error Game
+mk id usernames deck = do
   let hands = deck |> chunksOf 13 |> zip usernames |> Map.fromList
-  mk' usernames hands [] (usernames !! 0) NotChoosed
+  mk' id usernames hands [] (usernames !! 0) NotChoosed
 
-mk' :: [Username] -> Map Username [Card] -> [PlayedCard] -> Username -> Hokm -> Either Error Game
-mk' users hands middle hakem hokm = do
+mk' :: Id -> [Username] -> Map Username [Card] -> [PlayedCard] -> Username -> Hokm -> Either Error Game
+mk' id users hands middle hakem hokm = do
   players <- PointedList.fromList users |> fmap (set focus hakem) |> maybeToRight IncorrectUserCount
   -- unless (users == Map.keys hands) $ Left WrongUsers
   unless (hakem `elem` users) $ Left WrongUsers
   unless (length users == 4) $ Left IncorrectUserCount
   -- let id = 1
   pure $ Game {..}
-

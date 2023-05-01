@@ -1,22 +1,31 @@
 module Soltan.Data.Username
     ( Error (..)
     , Errors
-    , Username
+    , Username (..)
     , mk
     , pattern Username
-    , un
+    -- , un
     ) where
 
-import           Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey)
-import qualified Data.Text  as Text
+import           Data.Aeson  (FromJSON, FromJSONKey, ToJSON, ToJSONKey)
+import qualified Data.Text   as Text
+import           Servant.API (FromHttpApiData, ToHttpApiData)
 
 newtype Username
-  = Mk { un :: Text }
-  deriving newtype (Eq, FromJSON, Ord, Show, ToJSON)
+  = UnsafeMk { un :: Text }
+  deriving newtype
+    ( Eq
+    , FromHttpApiData
+    , FromJSON
+    , Ord
+    , Show
+    , ToHttpApiData
+    , ToJSON
+    )
 
 
 pattern Username :: Text -> Username
-pattern Username a <- Mk a
+pattern Username a <- UnsafeMk a
 {-# COMPLETE Username #-}
 
 data Error = IsEmpty | IsShort | IsLong | IsInvalid deriving stock
@@ -29,7 +38,7 @@ data Error = IsEmpty | IsShort | IsLong | IsInvalid deriving stock
 type Errors = NonEmpty Error
 
 mk :: Text -> Either Errors Username
-mk input = Right $ Mk input
+mk input = Right $ UnsafeMk input
 
 -- type instance Validation.Errors Text Username = Errors
 --

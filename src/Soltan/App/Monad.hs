@@ -12,7 +12,8 @@ type AppEnv = Env App
 
 newtype App a = App
     { unApp :: ReaderT AppEnv IO a
-    } deriving (Functor, Applicative, Monad, MonadIO, MonadReader AppEnv, MonadRandom, MonadMask, MonadCatch, MonadThrow)
+    } 
+    deriving newtype (Functor, Applicative, Monad, MonadIO, MonadReader AppEnv, MonadRandom, MonadMask, MonadCatch, MonadThrow)
 
 instance MonadError AppError App where
     throwError :: AppError -> App a
