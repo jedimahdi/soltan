@@ -16,18 +16,18 @@ data Value = Two | Three | Four | Five | Six | Seven | Eight | Nine | Ten | Jack
     , Ord
     , Show
     )
-  deriving anyclass (ToJSON)
+  deriving anyclass (ToJSON, FromJSON)
 
 data Suit = Club | Diamond | Heart | Spade
   deriving stock (Enum, Eq, Generic, Ord, Show)
-  deriving anyclass (ToJSON)
+  deriving anyclass (ToJSON, FromJSON)
 
 data Card = Card
   { suit :: Suit
   , value :: Value
   }
   deriving stock (Eq, Show, Generic, Ord)
-  deriving anyclass (ToJSON)
+  deriving anyclass (ToJSON, FromJSON)
 
 type Deck = [Card]
 

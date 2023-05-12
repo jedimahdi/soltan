@@ -1,3 +1,4 @@
+{-# LANGUAGE DuplicateRecordFields #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 {-# HLINT ignore "Use newtype instead of data" #-}
@@ -23,9 +24,26 @@ import Soltan.Server.Socket (
   handleLeaveGame,
   withConnection,
  )
+import Soltan.Data.Game.Card (Card, Suit)
+
+data PlayCardRequest = PlayCardRequest
+  { username :: Username
+  , card :: Card
+  }
+  deriving stock (Generic)
+  deriving anyclass (FromJSON)
+
+data ChooseHokmRequest = ChooseHokmRequest
+  { username :: Username
+  , suit :: Suit
+  }
+  deriving stock (Generic)
+  deriving anyclass (FromJSON)
 
 data Routes route = Routes
   { join :: route :- Capture "gameId" Game.Id :> Capture "username" Username :> WebSocket
+  , playCard :: route :- "play" :> ReqBody '[JSON] PlayCardRequest :> Post '[JSON] NoContent
+  , chooseHokm :: route :- "hokm" :> ReqBody '[JSON] ChooseHokmRequest :> Post '[JSON] NoContent
   }
   deriving stock (Generic)
 
@@ -35,12 +53,19 @@ server :: Routes AppServer
 server =
   Routes
     { join = joinHandler
+    , playCard = playCardHandler
+    , chooseHokm = chooseHokmHandler
     }
 
--- joinHandler :: ( MonadLobby m
---                , MonadHub m
---                , MonadMask m, GameState m
---                , MonadShuffle m
+chooseHokmHandler :: GameState m => ChooseHokmRequest -> m NoContent
+chooseHokmHandler ChooseHokmRequest {..} = do
+  pure NoContent
+
+playCardHandler :: GameState m => PlayCardRequest -> m NoContent
+playCardHandler PlayCardRequest {..} = do
+  pure NoContent
+
+
 joinHandler :: Game.Id -> Username -> WS.Connection -> App ()
 joinHandler gameId username conn = do
   Logger.debug <| "Connected to game " <> show gameId <> " user " <> show username

@@ -36,6 +36,13 @@ common common-options
                      , chronos
                      , wai-logger
                      , vector
+                     , pipes
+                     , pipes-aeson
+                     , pipes-concurrency
+                     , pipes-parse
+                     , transformers
+                     , mtl
+                     , async
 
   ghc-options:         -Wall
                        -Wincomplete-uni-patterns
@@ -80,6 +87,7 @@ common common-options
                        StandaloneDeriving
                        NamedFieldPuns
                        DeriveAnyClass
+                       DuplicateRecordFields
 
 library
   import:              common-options
@@ -120,6 +128,10 @@ library
                        Soltan.Server.Types
                        Soltan.Server.Lobby
                        Soltan.Server.Game
+                       Soltan.Socket
+                       Soltan.Socket.Types
+                       Soltan.Socket.Utils
+                       Soltan.Socket.Msg
   build-depends:       co-log
                      , servant
                      , servant-server
@@ -127,7 +139,6 @@ library
                      , network
                      , case-insensitive
                      , bcrypt
-                     , mtl
                      , postgresql-simple
                      , resource-pool
                      , warp 

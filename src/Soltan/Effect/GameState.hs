@@ -11,7 +11,7 @@ import Control.Lens (at)
 import qualified Data.Map as Map
 
 class Monad m => GameState m where
-  dispatchAction :: Game.Id -> Action 'Unknown -> m ()
+  dispatchAction :: Game.Id -> Action 'Valid -> m ()
   addGame :: Game -> m ()
   findGameById :: Game.Id -> m (Maybe Game)
 
@@ -28,14 +28,31 @@ withGame gameId action = do
   games <- readTVarIO gamesVar
   maybe pass action (games ^. at gameId)
 
-dispatchActionImpl :: WithGames r m => Game.Id -> Action 'Unknown -> m ()
-dispatchActionImpl gameId unknownAction =
-  withGame gameId \game -> do
-    case canPerformAction unknownAction game of
-      Left _ -> pass
-      Right action -> do
-        let newGame = gameReducer action game
-        pass
+dispatchActionImpl :: WithGames r m => Game.Id -> Action 'Valid -> m ()
+dispatchActionImpl gameId action = do
+  gamesVar <- grab @Games
+  atomically $ modifyTVar' gamesVar (Map.adjust (gameReducer action) gameId)
+
+dispatchAction' :: GameState m => Game.Id -> Action 'Unknown -> m ()
+dispatchAction' gameId unknownAction = do
+  maybeGame <- findGameById gameId
+  case maybeGame of
+    Nothing -> pass
+    Just game -> do
+      case validateAction unknownAction game of
+        Left _ -> pass
+        Right action -> do
+          dispatchAction gameId action
+    
+
+-- dispatchActionImpl :: WithGames r m => Game.Id -> Action 'Unknown -> m ()
+-- dispatchActionImpl gameId unknownAction =
+--   withGame gameId \game -> do
+--     case canPerformAction unknownAction game of
+--       Left _ -> pass
+--       Right action -> do
+--         let newGame = gameReducer action game
+--         pass
 
 addGameImpl :: WithGames r m => Game -> m ()
 addGameImpl game = do

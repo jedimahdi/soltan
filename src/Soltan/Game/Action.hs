@@ -1,5 +1,5 @@
 module Soltan.Game.Action
-  ( canPerformAction
+  ( validateAction
   , gameReducer
   , Error(..)
   ) where
@@ -14,8 +14,8 @@ import Soltan.Data.Username (Username)
 import Soltan.Game.Action.Checks
 import Soltan.Game.Action.Modifiers
 
-canPerformAction :: Action 'Unknown -> Game -> Either Error (Action 'Valid)
-canPerformAction action game =
+validateAction :: Action 'Unknown -> Game -> Either Error (Action 'Valid)
+validateAction action game =
   case action of
     PlayCard username card   -> playCardChecks username card
     ChooseHokm username suit -> chooseHokmChecks username suit
