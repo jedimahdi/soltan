@@ -43,6 +43,7 @@ common common-options
                      , transformers
                      , mtl
                      , async
+                     , unliftio
 
   ghc-options:         -Wall
                        -Wincomplete-uni-patterns
@@ -95,25 +96,9 @@ library
   exposed-modules:     Prelude
                        Soltan
                        Soltan.Data.Username
-                       Soltan.Data.Monoid.Checker
-                       Soltan.Data.Monoid.Modifier
-                       Soltan.Data.Game
-                       Soltan.Data.UserGame
-                       Soltan.Data.Game.Action
-                       Soltan.Data.Game.Card
-                       Soltan.Game.Action
-                       Soltan.Game.Action.Checks
-                       Soltan.Game.Action.Modifiers
-                       Soltan.Effect.GameState
-                       Soltan.Effect.Hub
-                       Soltan.Effect.Lobby
-                       Soltan.Effect.Shuffle
-                       Soltan.Effect.Id
-                       Soltan.App.Env
-                       Soltan.App.Monad
-                       Soltan.App.Client
-                       Soltan.App.Lobby
-                       Soltan.App.Error
+                       Soltan.Data.Has
+                       Soltan.Data.Four
+                       Soltan.Data.AtMostThree
                        Soltan.Chronos
                        Soltan.Logger
                        Soltan.Logger.Message
@@ -121,17 +106,20 @@ library
                        Soltan.Logger.Severity
                        Soltan.Network.Wai.Log
                        Soltan.Network.Wai.Cors
-                       Soltan.Server
-                       Soltan.Server.Prelude
-                       Soltan.Server.Api
-                       Soltan.Server.Socket
-                       Soltan.Server.Types
-                       Soltan.Server.Lobby
-                       Soltan.Server.Game
+                       Soltan.SocketApp
                        Soltan.Socket
                        Soltan.Socket.Types
                        Soltan.Socket.Utils
                        Soltan.Socket.Msg
+                       Soltan.Socket.Clients
+                       Soltan.Socket.Lobby
+                       Soltan.Socket.Table
+                       Soltan.Effects.WebSocket
+                       Soltan.Hokm
+                       Soltan.Hokm.Types
+                       Soltan.Hokm.ActionValidation
+                       Soltan.Hokm.Action
+                       Soltan.Hokm.Utils
   build-depends:       co-log
                      , servant
                      , servant-server
@@ -158,12 +146,11 @@ test-suite soltan-test
   import:              common-options
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
-  main-is:             Main.hs
-  other-modules:       Test.Soltan.Game.Action
-                       Test.Soltan.Data.Game
+  main-is:             Spec.hs
+  -- other-modules:       Spec.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       soltan
                      , hedgehog
-                     , tasty
-                     , tasty-hedgehog
-                     , tasty-hunit
+                     , hspec
+                     , hspec-hedgehog
+  build-tool-depends: hspec-discover:hspec-discover == 2.*

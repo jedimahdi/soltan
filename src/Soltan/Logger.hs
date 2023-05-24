@@ -7,6 +7,7 @@ module Soltan.Logger (
   logScopedMessageToStdStreams,
   panic,
   warning,
+  pipe,
   WithLog,
 ) where
 
@@ -19,6 +20,7 @@ import Colog (
   (&>),
  )
 import qualified Colog
+import Pipes (Pipe, await, yield)
 import qualified Soltan.Logger.Message as Message
 import Soltan.Logger.Severity
 import Prelude hiding (error)
@@ -44,6 +46,12 @@ error = log Error
 
 panic :: WithLog env m => MonadIO m => Text -> m ()
 panic = log Panic
+
+pipe :: WithLog env m => MonadIO m => Show a => Pipe a a m ()
+pipe = do
+  a <- await
+  lift . debug <| show a
+  yield a
 
 -------------------------------------------------------
 -- Log Actions

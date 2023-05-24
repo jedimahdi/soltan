@@ -14,5 +14,5 @@ import Soltan.Socket.Types (Lobby (..), MsgIn, MsgOut, Table, TableName)
 encodeMsgToJSON :: MsgOut -> Text
 encodeMsgToJSON a = T.pack $ show $ X.toStrict $ D.decodeUtf8 $ encode a
 
-unLobby :: Lobby -> Map TableName Table
-unLobby (Lobby lobby) = lobby
+-- unLobby :: Lobby -> Map TableName Table
+-- unLobby (Lobby lobby) = lobby

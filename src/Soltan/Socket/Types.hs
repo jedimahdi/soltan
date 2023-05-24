@@ -1,6 +1,7 @@
 module Soltan.Socket.Types where
 
 import Control.Concurrent.STM (TChan, TVar)
+import Data.Generics.Labels ()
 import qualified Network.WebSockets as WS
 import Pipes (
   Consumer,
@@ -12,10 +13,11 @@ import Pipes (
   (>->),
  )
 import Pipes.Concurrent (Input, Output)
-import Soltan.Data.Game (Game)
+import Soltan.Data.Has (Has (..))
 import Soltan.Data.Username (Username)
 import Text.Show
 import Prelude hiding (Show, show)
+import Soltan.Hokm (Game, GameErr, Card, Suit)
 
 type TableName = Text
 
@@ -23,27 +25,37 @@ data Table = Table
   { subscribers :: [Username]
   , gameOutMailbox :: Input Game
   , gameInMailbox :: Output Game
-  , channel :: TChan MsgOut
-  -- , waitlist :: [Username]
-  -- , game :: Game
+  , -- , waitlist :: [Username]
+    game :: Game
   }
+  deriving stock (Generic)
 
--- instance Show Table where
---   show Table{..} =
---     show subscribers <> "\n" <> show waitlist <> "\n" <> show game
+instance Show Table where
+  show Table{..} =
+    show subscribers <> "\n" <> show game
 
--- instance Eq Table where
---   Table{game = game1} == Table{game = game2} = game1 == game2
---
+instance Eq Table where
+  Table{game = game1} == Table{game = game2} = game1 == game2
+
 -- instance Ord Table where
 --   Table{game = game1} `compare` Table{game = game2} =
 --     game1 `compare` game2
 
+data TableSummary = TableSummary
+  { tableName :: TableName
+  , playerCount :: Int
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
 data Client = Client
   { username :: Username
-  , conn :: WS.Connection
   , outgoingMailbox :: Output MsgOut
   }
+  deriving stock (Generic)
+
+instance Has Client Client where
+  obtain = identity
 
 instance Show Client where
   show Client{..} = show username
@@ -52,8 +64,10 @@ instance Eq Client where
   Client{username = username1} == Client{username = username2} =
     username1 == username2
 
-newtype Lobby
-  = Lobby (Map TableName Table)
+-- newtype Lobby
+--   = Lobby (Map TableName Table)
+
+type Lobby = Map TableName Table
 
 -- deriving (Ord, Eq, Show)
 
@@ -61,21 +75,35 @@ data ServerState = ServerState
   { clients :: Map Username Client
   , lobby :: Lobby
   }
+  deriving stock (Generic)
 
 data MsgOut
-  = ErrMsg Err
+  = TableList [TableSummary]
+  | ErrMsg Err
   | AuthSuccess
-  -- | NewGameState TableName Game
+  | NewGameState TableName Game
+  | SuccessfullySubscribedToTable TableName Game
+  | Noop
   deriving stock (Generic, Show)
   deriving anyclass (ToJSON)
 
-data Err = AuthFailed
+data Err
+  = AuthFailed
+  | TableDoesNotExist TableName
+  | GameErr GameErr
+  | PlayerNotInTheGame
   deriving stock (Generic, Show)
   deriving anyclass (ToJSON)
 
 data MsgIn
   = GetTables
   | SubscribeToTable TableName
+  | GameMsgIn GameMsgIn
+  deriving (Show, Eq, Generic, FromJSON, ToJSON)
+
+data GameMsgIn
+  = PlayCardMsg TableName Card
+  | ChooseHokmMsg TableName Suit
   deriving (Show, Eq, Generic, FromJSON, ToJSON)
 
 data MsgHandlerConfig = MsgHandlerConfig
@@ -89,3 +117,6 @@ newtype TableDoesNotExistInLobby
   deriving (Show)
 
 instance Exception TableDoesNotExistInLobby
+
+type WithServerState env m = (MonadReader env m, Has (TVar ServerState) env, MonadIO m)
+type WithClient env m = (MonadReader env m, Has Client env)

@@ -37,7 +37,7 @@ prettyPrintTime :: Time -> Text
 prettyPrintTime = square . toStrict . TB.toLazyText . Choronos.builderDbyHMSz format . Choronos.timeToDatetime
   where format = DatetimeFormat (Just ' ') (Just ' ') (Just ':')
 
-data Scope = Cli | Api deriving stock (Eq)
+data Scope = Cli | Api | WebSocket deriving stock (Eq)
 
 prettyPrintScope :: Scope -> Text
 prettyPrintScope scope = color Cyan . square <| text
@@ -45,6 +45,7 @@ prettyPrintScope scope = color Cyan . square <| text
   text = case scope of
     Cli -> "CLI"
     Api -> "API"
+    WebSocket -> "WebSocket"
 
 data Scoped = Scoped Scope Minimal
 
