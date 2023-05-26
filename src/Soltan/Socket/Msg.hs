@@ -33,17 +33,9 @@ msgHandler client (GameMsgIn msg) = gameMsgHandler msg client
 withTable_ :: WithServerState env m => TableName -> (Table -> m (Either Err r)) -> m (Either Err r)
 withTable_ tableName = withTable tableName (pure . Left <| TableDoesNotExist tableName)
 
-runPlayerAction :: WithServerState env m => TableName -> Game -> Action 'Unknown -> m (Either Err MsgOut)
-runPlayerAction tableName game action = do
-  serverStateTVar <- grab @(TVar ServerState)
-  let eValidAction = validateAction game action
-  case eValidAction of
-    Left e -> pure . Left <| GameErr e
-    Right validAction -> do
-      let newGame = runAction validAction game
-      atomically
-        <| modifyTVar' serverStateTVar (#lobby . ix tableName . #game .~ newGame)
-      pure . Right <| NewGameState tableName newGame
+runPlayerAction :: TableName -> Game -> Action 'Unknown -> Either Err MsgOut
+runPlayerAction tableName game action =
+  validateAction game action |> bimap GameErr (NewGameState tableName . flip runAction game)
 
 withPlayerIndex :: Applicative m => Username -> Game -> (PlayerIndex -> m (Either Err r)) -> m (Either Err r)
 withPlayerIndex username game f = maybe (pure . Left <| PlayerNotInTheGame) f (getPlayerIndexWithUsername username game)
@@ -52,16 +44,16 @@ gameMsgHandler :: WithServerState env m => GameMsgIn -> Client -> m (Either Err 
 gameMsgHandler msg client = case msg of
   PlayCardMsg tableName card ->
     withTable_ tableName \table -> do
-      let username = client ^. #username
       let game = table ^. #game
       withPlayerIndex username game \playerIndex ->
-        runPlayerAction tableName game (PlayCard playerIndex card)
+        pure <| runPlayerAction tableName game (PlayCard playerIndex card)
   ChooseHokmMsg tableName suit ->
     withTable_ tableName \table -> do
-      let username = client ^. #username
       let game = table ^. #game
       withPlayerIndex username game \playerIndex ->
-        runPlayerAction tableName game (ChooseHokm playerIndex suit)
+        pure <| runPlayerAction tableName game (ChooseHokm playerIndex suit)
+ where
+  username = client ^. #username
 
 subscribeToTableHandler :: WithServerState env m => TableName -> Client -> m (Either Err MsgOut)
 subscribeToTableHandler tableName client = do
@@ -77,4 +69,4 @@ subscribeToTableHandler tableName client = do
 getTablesHandler :: WithServerState env m => m (Either Err MsgOut)
 getTablesHandler = do
   ServerState{..} <- grab @(TVar ServerState) >>= readTVarIO
-  pure <| Right <| TableList (summariseTables lobby)
+  pure . Right <| TableList (summariseTables lobby)
