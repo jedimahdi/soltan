@@ -5,21 +5,15 @@ import Data.Either (isLeft, isRight)
 import Hedgehog (Property, forAll, property, withDiscards, (===))
 import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
+import Hokm.Hedgehog.Gen.Game
 import qualified Soltan.Data.AtMostThree as AtMostThree
 import qualified Soltan.Data.Four as Four
 import qualified Soltan.Data.Username as Username
 import Soltan.Hokm.ActionValidation
 import Soltan.Hokm.Types
 import Test.Hspec (Spec, describe, it, shouldBe)
-import Test.Hspec.Hedgehog (
-  PropertyT,
-  diff,
-  forAll,
-  hedgehog,
-  modifyMaxDiscardRatio,
-  (/==),
-  (===),
- )
+import Test.Hspec.Hedgehog (forAll, hedgehog, (/==), (===))
+import Prelude hiding (state)
 
 initialGame :: Game
 initialGame = GameBeforeStart
@@ -194,31 +188,37 @@ gameEndFixture =
       }
 
 spec :: Spec
-spec = do
-  describe "validateAction" do
-    describe "ChooseHokm Action" do
-      it "should return NoChoosingHokmPhase error if game is GameBeforeStart" do
-        let action = ChooseHokm Player2 Diamonds
-        validateAction initialGame action `shouldBe` Left NoChoosingHokmPhase
+spec = describe "validateAction" do
+  describe "ChooseHokm Action" do
+    it "should return NoChoosingHokmPhase error if game is GameBeforeStart" do
+      let action = ChooseHokm Player2 Diamonds
+      validateAction initialGame action `shouldBe` Left NoChoosingHokmPhase
 
-      it "should return NotHakem when player who is choosing is not Hakem" do
-        let action = ChooseHokm Player1 Diamonds
-        validateAction choosingHokmFixture action `shouldBe` Left NotHakem
+    it "should return NotHakem when player who is choosing is not Hakem" do
+      hedgehog do
+        (game, state) <- forAll genChoosingHokmGame
+        trumpSuit <- forAll genSuit
+        notHakem <- forAll <| genPlayerIndexExcept (state ^. #hakem)
+        let action = ChooseHokm notHakem trumpSuit
+        validateAction game action === Left NotHakem
 
-      it "should not return an error if player can choose hokm" do
-        let action = ChooseHokm Player2 Diamonds
-        validateAction choosingHokmFixture action `shouldBe` Right (unsafeStatusCoerce action)
+    it "should not return an error if player can choose hokm" do
+      hedgehog do
+        (game, state) <- forAll genChoosingHokmGame
+        trumpSuit <- forAll genSuit
+        let action = ChooseHokm (state ^. #hakem) trumpSuit
+        validateAction game action === Right (unsafeStatusCoerce action)
 
-    describe "PlayCard Action" do
-      it "should return OutOfTurn error when it is wrong turn" do
-        let action = PlayCard Player2 (Card Two Diamonds)
-        validateAction gameInProgresFixture action `shouldBe` Left (OutOfTurn Player1)
+  describe "PlayCard Action" do
+    it "should return OutOfTurn error when it is wrong turn" do
+      let action = PlayCard Player2 (Card Two Diamonds)
+      validateAction gameInProgresFixture action `shouldBe` Left (OutOfTurn Player1)
 
-      it "should return validated Action if player can play the card" do
-        let action = PlayCard Player1 (Card Three Spades)
-        validateAction gameInProgresFixture action `shouldBe` Right (unsafeStatusCoerce action)
+    it "should return validated Action if player can play the card" do
+      let action = PlayCard Player1 (Card Three Spades)
+      validateAction gameInProgresFixture action `shouldBe` Right (unsafeStatusCoerce action)
 
-    describe "NextRound Action" do
-      it "should return validated Action if all players played their card in the round" do
-        let action = NextRound
-        validateAction gameEndOfRoundFixture action `shouldBe` Right (unsafeStatusCoerce action)
+  describe "NextRound Action" do
+    it "should return validated Action if all players played their card in the round" do
+      let action = NextRound
+      validateAction gameEndOfRoundFixture action `shouldBe` Right (unsafeStatusCoerce action)

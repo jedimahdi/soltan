@@ -6,7 +6,31 @@ import Data.List.Split (chunksOf)
 import Soltan.Data.AtMostThree (AtMostThree (..))
 import Soltan.Data.Four (Four (..))
 import Soltan.Hokm.ActionValidation (unsafeStatusCoerce)
-import Soltan.Hokm.Types hiding (Four, Three, Two)
+import Soltan.Hokm.Types (
+  Action (..),
+  ActionStatus (Valid),
+  Card,
+  Game (GameChoosingHokm, GameEndOfRound, GameInProgress),
+  GameEndOfRoundState (
+    GameEndOfRoundState,
+    board,
+    hakem,
+    players,
+    teamAPoints,
+    teamARounds,
+    teamBPoints,
+    teamBRounds,
+    trumpSuit
+  ),
+  GameInProgressState (..),
+  PlayedCard (PlayedCard),
+  Player (cards),
+  PlayerIndex (..),
+  Players (Players, player1, player2, player3, player4),
+  Suit,
+  playerL,
+  _GameInProgress,
+ )
 import Soltan.Hokm.Utils
 import Prelude hiding (first, second)
 

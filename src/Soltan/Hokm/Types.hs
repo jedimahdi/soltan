@@ -5,10 +5,10 @@ module Soltan.Hokm.Types where
 import Control.Lens (Lens', lens)
 import Control.Lens.TH (makePrisms)
 import Data.Generics.Labels ()
-import Soltan.Data.Username (Username)
-import qualified Text.Show
 import Soltan.Data.AtMostThree (AtMostThree)
 import Soltan.Data.Four (Four)
+import Soltan.Data.Username (Username)
+import qualified Text.Show
 
 data Rank
   = Two
@@ -193,9 +193,8 @@ data Turn = NoOne | TurnIndex PlayerIndex
   deriving anyclass (ToJSON)
 
 data PlayerIndex = Player1 | Player2 | Player3 | Player4
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Eq, Generic, Enum, Bounded)
   deriving anyclass (ToJSON, FromJSON)
-
 
 getPlayer :: PlayerIndex -> Players -> Player
 getPlayer idx (Players player1 player2 player3 player4) =
@@ -215,5 +214,32 @@ playerL idx = lens getter setter
       Player2 -> Players player1 updatedPlayer player3 player4
       Player3 -> Players player1 player2 updatedPlayer player4
       Player4 -> Players player1 player2 player3 updatedPlayer
+
+data PlayerSummary = PlayerSummary
+  { username :: Username
+  , team :: Team
+  , idx :: PlayerIndex
+  }
+
+data GameSummaryStatus
+  = SummaryNotStarted
+  | SummaryChoosingHokm
+  | SummaryInProgress
+  | SummaryEndOfRound
+  | SummaryEndOfGame
+
+data GameSummary = GameSummary
+  { status :: GameSummaryStatus
+  , cards :: [Card]
+  , players :: [PlayerSummary]
+  , hakem :: Maybe Username
+  , turn :: Maybe Username
+  , trumpSuit :: Maybe Suit
+  , board :: [PlayedCard]
+  , teamARounds :: Round
+  , teamBRounds :: Round
+  , teamAPoints :: Point
+  , teamBPoints :: Point
+  }
 
 makePrisms ''Game

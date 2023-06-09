@@ -7,12 +7,12 @@ import Pipes.Concurrent (fromInput, toOutput)
 import Soltan.Data.Has (grab)
 import Soltan.Data.Username (Username)
 import Soltan.Hokm.Types (Game)
-import Soltan.Logger (WithLog)
-import qualified Soltan.Logger as Logger
+import qualified Soltan.Effects.LogMessages as Logger
+import  Soltan.Effects.LogMessages (LogMessages)
 import Soltan.Socket.Types (Client (..), MsgOut (..), ServerState (..), Table (..), TableName, WithServerState)
 import UnliftIO (MonadUnliftIO, async)
 
-setupTablePipeline :: forall m env. (WithServerState env m, MonadUnliftIO m, WithLog env m) => TableName -> Table -> m ()
+setupTablePipeline :: forall m env. (WithServerState env m, MonadUnliftIO m) => TableName -> Table -> m ()
 setupTablePipeline tableName Table{..} = void <| async <| infinitely <| runEffect <| pipeline
  where
   pipeline :: Effect m ()
@@ -20,7 +20,7 @@ setupTablePipeline tableName Table{..} = void <| async <| infinitely <| runEffec
     fromInput gameOutMailbox
       >-> broadcast tableName
       >-> updateTable tableName
-      >-> Logger.pipe
+      -- >-> Logger.pipe
       >-> gameDone
 
 gameDone :: MonadIO m => Consumer Game m ()

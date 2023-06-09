@@ -120,3 +120,4 @@ instance Exception TableDoesNotExistInLobby
 
 type WithServerState env m = (MonadReader env m, Has (TVar ServerState) env, MonadIO m)
 type WithClient env m = (MonadReader env m, Has Client env)
+

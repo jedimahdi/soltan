@@ -1,0 +1,14 @@
+packages: ./
+with-compiler: ghc-9.2.7
+optimization: False
+documentation: True
+write-ghc-environment-files: always
+
+package *
+  documentation: True
+  ghc-options: -haddock
+               -fwrite-ide-info
+               -hiedir=.hie
+
+program-options
+  ghc-options: -haddock

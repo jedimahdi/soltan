@@ -9,17 +9,14 @@ module Soltan.Data.Username
 
 import           Data.Aeson  (FromJSON, FromJSONKey, ToJSON, ToJSONKey)
 import qualified Data.Text   as Text
-import           Servant.API (FromHttpApiData, ToHttpApiData)
 
 newtype Username
   = UnsafeMk { un :: Text }
   deriving newtype
     ( Eq
-    , FromHttpApiData
     , FromJSON
     , Ord
     , Show
-    , ToHttpApiData
     , ToJSON
     )
 

@@ -4,11 +4,9 @@ import Colog
 import qualified Control.Concurrent.Async as Async
 import qualified Data.Map as Map
 import qualified Network.Wai.Handler.Warp as Warp
-import qualified Soltan.Logger as Logger
+import qualified Soltan.Effects.LogMessages as Logger
 import Soltan.Logger.Message (Scope (..))
 import qualified Soltan.Logger.Message as Logger.Message
-import Soltan.Network.Wai.Cors (corsMiddleware)
-import Soltan.Network.Wai.Log (logMiddleware)
 import Soltan.Socket (runSocketServer)
 import Prelude hiding ((>$<))
 
@@ -20,10 +18,10 @@ data Config = Config
 
 main :: IO ()
 main = do
-  let config@Config{..} = Config 8000 5000 (Logger.Message.Scoped Api >$< Logger.logScopedMessageToStdStreams)
-  runSocketServer socketPort
+  -- let config@Config{..} = Config 8000 5000 (Logger.Message.Scoped Api >$< Logger.logScopedMessageToStdStreams)
+  runSocketServer 5000
 
-beforeMainLoopHook :: MonadIO m => Config -> m ()
-beforeMainLoopHook Config{..} =
-  usingLoggerT logAction
-    <| Logger.info ("Started listening on 127.0.0.1:" <> show apiPort <> ". Websocket server on ws://localhost:" <> show socketPort)
+-- beforeMainLoopHook :: MonadIO m => Config -> m ()
+-- beforeMainLoopHook Config{..} =
+--   usingLoggerT logAction
+--     <| Logger.info ("Started listening on 127.0.0.1:" <> show apiPort <> ". Websocket server on ws://localhost:" <> show socketPort)

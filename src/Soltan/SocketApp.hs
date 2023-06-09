@@ -3,7 +3,14 @@
 {-# HLINT ignore "Use newtype instead of data" #-}
 module Soltan.SocketApp where
 
-import Colog (HasLog (..), LogAction, Message)
+import Colog (
+  HasLog (..),
+  LogAction (..),
+  logMsg,
+  logTextStderr,
+  logTextStdout,
+  (&>),
+ )
 import Control.Exception.Safe (MonadCatch, MonadMask, MonadThrow)
 import Control.Monad.Random.Class (MonadRandom)
 import qualified Control.Monad.Trans.Reader as ReaderT
@@ -11,9 +18,9 @@ import Data.Generics.Labels ()
 import qualified Network.WebSockets as WS
 import Relude.Extra.Bifunctor (firstF)
 import Soltan.Data.Has (Has (..))
-import qualified Soltan.Logger as Logger
 import Soltan.Logger.Message (Scope (..))
 import qualified Soltan.Logger.Message as Logger.Message
+import Soltan.Logger.Severity (Severity (..))
 import Soltan.Socket.Types (Client, ServerState)
 import UnliftIO (MonadUnliftIO)
 
@@ -21,6 +28,7 @@ data SocketEnv (m :: Type -> Type) = SocketEnv
   { conn :: WS.Connection
   , serverState :: TVar ServerState
   , logAction :: !(LogAction m Logger.Message.Minimal)
+  -- , stateRuntime :: StateRuntime
   }
   deriving stock (Generic)
 
@@ -36,7 +44,7 @@ instance HasLog (SocketEnv m) Logger.Message.Minimal m where
   {-# INLINE setLogAction #-}
 
 mkEnv :: MonadIO m => WS.Connection -> TVar ServerState -> SocketEnv m
-mkEnv conn s = SocketEnv conn s (Logger.Message.Scoped WebSocket >$< Logger.logScopedMessageToStdStreams)
+mkEnv conn s = SocketEnv conn s (Logger.Message.Scoped WebSocket >$< logScopedMessageToStdStreams)
 
 newtype SocketApp a = SocketApp
   { unApp :: ReaderT (SocketEnv SocketApp) IO a
@@ -54,3 +62,10 @@ newtype WithClientM m a = WithClientM
 
 runWithClient :: Client -> WithClientM m a -> m a
 runWithClient client = usingReaderT client . unWithClient
+
+-------------------------------------------------------
+-- Log Actions
+
+logScopedMessageToStdStreams :: MonadIO m => LogAction m Logger.Message.Scoped
+logScopedMessageToStdStreams = LogAction \message@(Logger.Message.Scoped _ Logger.Message.Minimal{severity}) ->
+  let action = if severity == Error || severity == Panic then logTextStderr else logTextStdout in Logger.Message.prettyPrintScoped message &> action

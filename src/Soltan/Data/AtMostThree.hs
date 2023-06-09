@@ -1,5 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -Wno-partial-fields #-}
+{-# LANGUAGE DeriveFoldable #-}
 
 module Soltan.Data.AtMostThree where
 
@@ -11,7 +12,7 @@ data AtMostThree a
   | One {first :: a}
   | Two {first :: a, second :: a}
   | Three {first :: a, second :: a, third :: a}
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Eq, Generic, Foldable)
   deriving anyclass (ToJSON)
 
 makePrisms ''AtMostThree

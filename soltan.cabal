@@ -19,7 +19,6 @@ common common-options
                      , generic-lens
                      , aeson
                      , flow
-                     , pointedlist
                      , refined
                      , random
                      , random-shuffle
@@ -44,6 +43,7 @@ common common-options
                      , mtl
                      , async
                      , unliftio
+                     , free
 
   ghc-options:         -Wall
                        -Wincomplete-uni-patterns
@@ -100,38 +100,33 @@ library
                        Soltan.Data.Four
                        Soltan.Data.AtMostThree
                        Soltan.Chronos
-                       Soltan.Logger
                        Soltan.Logger.Message
                        Soltan.Logger.Formatting
                        Soltan.Logger.Severity
-                       Soltan.Network.Wai.Log
-                       Soltan.Network.Wai.Cors
                        Soltan.SocketApp
                        Soltan.Socket
+                       Soltan.Socket.Prelude
                        Soltan.Socket.Types
                        Soltan.Socket.Utils
                        Soltan.Socket.Msg
                        Soltan.Socket.Clients
                        Soltan.Socket.Lobby
                        Soltan.Socket.Table
+                       Soltan.Effects.Now
+                       Soltan.Effects.LogMessages
                        Soltan.Effects.WebSocket
+                       Soltan.Effects.Lobby
+                       Soltan.Effects.Concurrent
+                       Soltan.Effects.Clients
                        Soltan.Hokm
                        Soltan.Hokm.Types
                        Soltan.Hokm.ActionValidation
                        Soltan.Hokm.Action
                        Soltan.Hokm.Utils
   build-depends:       co-log
-                     , servant
-                     , servant-server
                      , http-types
                      , network
-                     , case-insensitive
-                     , bcrypt
-                     , postgresql-simple
-                     , resource-pool
                      , warp 
-                     , postgresql-simple-named
-                     , servant-websockets
                      , wai
                      , wai-cors
 
@@ -147,7 +142,9 @@ test-suite soltan-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Spec.hs
-  -- other-modules:       Spec.hs
+  other-modules:       Hokm.Hedgehog.Gen.Game
+                       Test.Hokm.ActionSpec
+                       Test.Hokm.ActionValidationSpec
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       soltan
                      , hedgehog
