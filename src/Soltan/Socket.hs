@@ -5,9 +5,10 @@
 module Soltan.Socket where
 
 import qualified Control.Concurrent.STM as STM
-import Control.Lens (ix, (^?))
+import Control.Lens (itraverse, itraversed, ix, (^..), (^?))
 import qualified Data.Aeson as Aeson
 import Data.Generics.Labels ()
+import Data.Map as Map
 import qualified Network.WebSockets as WS
 import Pipes (Pipe, Producer, await, for, runEffect, yield, (>->))
 import qualified Pipes.Aeson
@@ -32,7 +33,7 @@ import Soltan.Socket.Clients (LoginRequest (..), addClient, authenticateClient)
 import Soltan.Socket.Lobby (initialLobby)
 import Soltan.Socket.Msg (msgHandler)
 import Soltan.Socket.Prelude
-import Soltan.Socket.Table (withTable)
+import Soltan.Socket.Table (setupTablePipeline, withTable)
 import Soltan.Socket.Types (
   Client (..),
   Err (..),
@@ -50,6 +51,7 @@ import Soltan.Socket.Utils (encodeMsgToJSON)
 import Soltan.SocketApp (mkEnv, runSocketApp, runWithClient)
 import UnliftIO (MonadUnliftIO)
 import UnliftIO.Async (Async, async)
+import qualified Data.ByteString as BS
 
 initialServerState :: Lobby -> ServerState
 initialServerState lobby = ServerState{clients = mempty, lobby = lobby}
@@ -57,18 +59,37 @@ initialServerState lobby = ServerState{clients = mempty, lobby = lobby}
 runSocketServer :: Int -> IO ()
 runSocketServer port = do
   lobby <- initialLobby
+
   serverStateTVar <- newTVarIO (initialServerState lobby)
-  _ <- async . WS.runServer "0.0.0.0" port <| go serverStateTVar
+
+  traverse_
+    (uncurry $ setupTablePipeline serverStateTVar)
+    (Map.toList lobby)
+
+  _ <- WS.runServer "0.0.0.0" port <| go serverStateTVar
   pass
  where
   go :: TVar ServerState -> WS.PendingConnection -> IO ()
   go serverState pending = do
     conn <- WS.acceptRequest pending
-    pass
+    let env = mkEnv conn serverState
+    WS.withPingThread conn 30 pass do
+      runSocketApp env app
 
--- let env = mkEnv conn serverState
--- WS.withPingThread conn 30 pass do
---   runSocketApp env app
+wreceiveJSON :: forall a m. (WebSocket m, FromJSON a, LogMessages m, Now m, Show a) => m (Maybe a)
+wreceiveJSON = do
+  msg <- WebSocket.receive
+  Logger.debug <| "Recieved Msg " <> show msg
+  let m = Aeson.decode . BS.fromStrict <| msg
+  Logger.debug <| "Parsed Msg is " <> show m
+  pure m
+
+wproducer :: forall a m. (WebSocket m, FromJSON a, LogMessages m, Now m, Show a) => Producer a m ()
+wproducer = void . infinitely <| do
+  mMsg <- lift wreceiveJSON
+  case mMsg of
+    Nothing -> lift <| Logger.warning "Msg format is wrong"
+    Just msg -> yield msg
 
 app :: AppL ()
 app = authenticateClient >>= either authenticateFailed go
@@ -88,7 +109,7 @@ app = authenticateClient >>= either authenticateFailed go
     void
       <| infinitely
       <| runEffect
-      <| WebSocket.producer @MsgIn
+      <| wproducer @MsgIn
       >-> Concurrent.toOutput writeMsgInSource
 
   authenticateFailed = WebSocket.sendJSON . ErrMsg

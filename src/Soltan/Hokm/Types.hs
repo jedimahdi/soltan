@@ -82,15 +82,14 @@ data Player = Player
   deriving stock (Eq, Show, Ord, Generic)
   deriving anyclass (ToJSON, FromJSON)
 
-data ActionStatus = Unknown | Valid | Invalid
+data Action
+  = PlayCard PlayerIndex Card
+  | ChooseHokm PlayerIndex Suit
+  | NextRound
+  | StartGame [Card] [Username]
 
-data Action (status :: ActionStatus) where
-  PlayCard :: PlayerIndex -> Card -> Action 'Unknown
-  ChooseHokm :: PlayerIndex -> Suit -> Action 'Unknown
-  NextRound :: Action 'Unknown
-
-deriving stock instance Eq (Action s)
-deriving stock instance Show (Action s)
+deriving stock instance Eq Action
+deriving stock instance Show Action
 
 data GameErr
   = NoPlayerCanPlay
@@ -98,6 +97,7 @@ data GameErr
   | CardNotFound
   | EndOfRound
   | GameNotStarted
+  | GameAlreadyStarted
   | GameHasEnded
   | InvalidAction
   | WrongSuit
@@ -220,6 +220,8 @@ data PlayerSummary = PlayerSummary
   , team :: Team
   , idx :: PlayerIndex
   }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToJSON)
 
 data GameSummaryStatus
   = SummaryNotStarted
@@ -227,6 +229,8 @@ data GameSummaryStatus
   | SummaryInProgress
   | SummaryEndOfRound
   | SummaryEndOfGame
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToJSON)
 
 data GameSummary = GameSummary
   { status :: GameSummaryStatus
@@ -241,5 +245,7 @@ data GameSummary = GameSummary
   , teamAPoints :: Point
   , teamBPoints :: Point
   }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToJSON)
 
 makePrisms ''Game

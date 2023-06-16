@@ -6,10 +6,12 @@ import Data.List.Split (chunksOf)
 import Hedgehog (Gen)
 import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
+import qualified Soltan.Data.AtMostThree as AtMostThree
 import Soltan.Data.Username (Username)
 import qualified Soltan.Data.Username as Username
 import Soltan.Hokm
 import Soltan.Hokm.Types hiding (username)
+import Soltan.Hokm.Utils (nextPlayerIndexTurn, splitFourWay)
 import Prelude hiding (state)
 
 genShuffledCards :: Int -> Gen [Card]
@@ -41,15 +43,6 @@ genPlayer team cards = do
   playerName <- genUsername
   pure Player{..}
 
--- players :: [Card] -> Gen Players
--- players cards = do
---   let [c1, c2, c3, c4] = chunksOf 13 cards
---   p1 <- player A c1
---   p2 <- player B c2
---   p3 <- player A c3
---   p4 <- player B c4
---   pure (Players p1 p2 p3 p4)
-
 genChoosingHokmGame :: Gen (Game, ChoosingHokmState)
 genChoosingHokmGame = do
   deck <- genShuffledDeck
@@ -62,4 +55,47 @@ genChoosingHokmGame = do
   p4 <- genPlayer B (getCards Player4)
   let players = Players p1 p2 p3 p4
   let state = ChoosingHokmState{..}
-  pure <| (GameChoosingHokm state, state)
+  pure (GameChoosingHokm state, state)
+
+data GenerateGameInProgressInfo = GenerateGameInProgressInfo
+  { player1Cards :: [Card]
+  , player2Cards :: [Card]
+  , player3Cards :: [Card]
+  , player4Cards :: [Card]
+  , turn :: PlayerIndex
+  , board :: [PlayedCard]
+  }
+
+genInProgressGame :: GenerateGameInProgressInfo -> Gen (Game, GameInProgressState)
+genInProgressGame GenerateGameInProgressInfo{..} = do
+  hakem <- genPlayerIndex
+  trumpSuit <- genSuit
+  p1 <- genPlayer A player1Cards
+  p2 <- genPlayer B player2Cards
+  p3 <- genPlayer A player3Cards
+  p4 <- genPlayer B player4Cards
+  teamAPoints <- Point . fromIntegral <$> Gen.int (Range.constant 0 5)
+  teamBPoints <- Point . fromIntegral <$> Gen.int (Range.constant 0 5)
+  teamARounds <- Round . fromIntegral <$> Gen.int (Range.constant 0 5)
+  teamBRounds <- Round . fromIntegral <$> Gen.int (Range.constant 0 5)
+  let players = Players p1 p2 p3 p4
+  let gameBoard = case board of
+        [c1, c2, c3] -> AtMostThree.Three c1 c2 c3
+        [c1, c2] -> AtMostThree.Two c1 c2
+        [c1] -> AtMostThree.One c1
+        _ -> AtMostThree.Zero
+  let state = GameInProgressState{board = gameBoard, ..}
+  pure (GameInProgress state, state)
+
+genInProgressGame_ :: Gen (Game, GameInProgressState)
+genInProgressGame_ = do
+  numCards <- Gen.element (map (* 4) [1 .. 13])
+  cards <- genShuffledCards numCards
+  boardCardsCount <- Gen.int (Range.constant 0 3)
+  let (boardCards, hands) = splitAt boardCardsCount cards
+  let (player1Cards, player2Cards, player3Cards, player4Cards) = splitFourWay hands
+  -- always player 1 starts
+  let board = fmap (uncurry PlayedCard) <| zip boardCards [Player1, Player2, Player3]
+  let turn = fromMaybe Player1 <| fmap nextPlayerIndexTurn <| fmap (view #playerIndex) <| viaNonEmpty last <| board
+  genInProgressGame GenerateGameInProgressInfo{..}
+

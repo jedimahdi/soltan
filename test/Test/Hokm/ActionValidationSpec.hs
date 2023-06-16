@@ -6,6 +6,7 @@ import Hedgehog (Property, forAll, property, withDiscards, (===))
 import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
 import Hokm.Hedgehog.Gen.Game
+import Hokm.Utils (initialTestPlayers)
 import qualified Soltan.Data.AtMostThree as AtMostThree
 import qualified Soltan.Data.Four as Four
 import qualified Soltan.Data.Username as Username
@@ -25,32 +26,11 @@ choosingHokmFixture =
       { remainingDeck = []
       , hakem = Player2
       , players =
-          Players
-            { player1 =
-                Player
-                  { playerName = Username.UnsafeMk "player1"
-                  , team = A
-                  , cards = []
-                  }
-            , player2 =
-                Player
-                  { playerName = Username.UnsafeMk "player2"
-                  , team = B
-                  , cards = [Card Three Spades, Card Ace Hearts, Card King Diamonds, Card Four Diamonds, Card Two Diamonds]
-                  }
-            , player3 =
-                Player
-                  { playerName = Username.UnsafeMk "player3"
-                  , team = A
-                  , cards = []
-                  }
-            , player4 =
-                Player
-                  { playerName = Username.UnsafeMk "player4"
-                  , team = B
-                  , cards = []
-                  }
-            }
+          initialTestPlayers
+            []
+            [Card Three Spades, Card Ace Hearts, Card King Diamonds, Card Four Diamonds, Card Two Diamonds]
+            []
+            []
       }
 
 gameEndOfRoundFixture :: Game
@@ -70,32 +50,11 @@ gameEndOfRoundFixture =
       , teamARounds = 0
       , teamBRounds = 0
       , players =
-          Players
-            { player1 =
-                Player
-                  { playerName = Username.UnsafeMk "player1"
-                  , team = A
-                  , cards = [Card Four Diamonds, Card Two Diamonds]
-                  }
-            , player2 =
-                Player
-                  { playerName = Username.UnsafeMk "player2"
-                  , team = B
-                  , cards = [Card Three Spades, Card Ace Hearts]
-                  }
-            , player3 =
-                Player
-                  { playerName = Username.UnsafeMk "player3"
-                  , team = A
-                  , cards = [Card Three Clubs, Card King Hearts]
-                  }
-            , player4 =
-                Player
-                  { playerName = Username.UnsafeMk "player4"
-                  , team = B
-                  , cards = [Card Queen Clubs, Card Ace Clubs]
-                  }
-            }
+          initialTestPlayers
+            [Card Four Diamonds, Card Two Diamonds]
+            [Card Three Spades, Card Ace Hearts]
+            [Card Three Clubs, Card King Hearts]
+            [Card Queen Clubs, Card Ace Clubs]
       }
 
 gameInProgresFixture :: Game
@@ -120,32 +79,11 @@ gameInProgresFixture =
       , teamARounds = 0
       , teamBRounds = 0
       , players =
-          Players
-            { player1 =
-                Player
-                  { playerName = Username.UnsafeMk "player1"
-                  , team = A
-                  , cards = [Card Four Diamonds, Card Three Spades]
-                  }
-            , player2 =
-                Player
-                  { playerName = Username.UnsafeMk "player2"
-                  , team = B
-                  , cards = [Card Two Diamonds, Card Ace Hearts]
-                  }
-            , player3 =
-                Player
-                  { playerName = Username.UnsafeMk "player3"
-                  , team = A
-                  , cards = [Card Three Clubs]
-                  }
-            , player4 =
-                Player
-                  { playerName = Username.UnsafeMk "player4"
-                  , team = B
-                  , cards = [Card Queen Clubs]
-                  }
-            }
+          initialTestPlayers
+            [Card Four Diamonds, Card Three Spades]
+            [Card Two Diamonds, Card Ace Hearts]
+            [Card Three Clubs]
+            [Card Queen Clubs]
       }
 
 gameEndFixture :: Game
@@ -158,33 +96,7 @@ gameEndFixture =
       , teamARounds = 0
       , teamBRounds = 0
       , prevHakem = Player2
-      , players =
-          Players
-            { player1 =
-                Player
-                  { playerName = Username.UnsafeMk "player1"
-                  , team = A
-                  , cards = []
-                  }
-            , player2 =
-                Player
-                  { playerName = Username.UnsafeMk "player2"
-                  , team = B
-                  , cards = []
-                  }
-            , player3 =
-                Player
-                  { playerName = Username.UnsafeMk "player3"
-                  , team = A
-                  , cards = []
-                  }
-            , player4 =
-                Player
-                  { playerName = Username.UnsafeMk "player4"
-                  , team = B
-                  , cards = []
-                  }
-            }
+      , players = initialTestPlayers [] [] [] []
       }
 
 spec :: Spec
@@ -207,7 +119,7 @@ spec = describe "validateAction" do
         (game, state) <- forAll genChoosingHokmGame
         trumpSuit <- forAll genSuit
         let action = ChooseHokm (state ^. #hakem) trumpSuit
-        validateAction game action === Right (unsafeStatusCoerce action)
+        validateAction game action === Right ()
 
   describe "PlayCard Action" do
     it "should return OutOfTurn error when it is wrong turn" do
@@ -216,9 +128,9 @@ spec = describe "validateAction" do
 
     it "should return validated Action if player can play the card" do
       let action = PlayCard Player1 (Card Three Spades)
-      validateAction gameInProgresFixture action `shouldBe` Right (unsafeStatusCoerce action)
+      validateAction gameInProgresFixture action `shouldBe` Right ()
 
   describe "NextRound Action" do
     it "should return validated Action if all players played their card in the round" do
       let action = NextRound
-      validateAction gameEndOfRoundFixture action `shouldBe` Right (unsafeStatusCoerce action)
+      validateAction gameEndOfRoundFixture action `shouldBe` Right ()

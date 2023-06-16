@@ -9,4 +9,4 @@ import Soltan.Effects.WebSocket (WebSocket)
 
 type AppL a = forall m. (WebSocket m, LogMessages m, Now m, ManageLobby m, ManageClients m, Concurrent m) => m a
 
-type LangL a = forall m. (LogMessages m, Now m, ManageLobby m) => m a
+type LangL a = forall m. (LogMessages m, Now m, ManageLobby m, Concurrent m) => m a

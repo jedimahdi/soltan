@@ -1,11 +1,12 @@
 module Soltan.Hokm.ActionValidation where
 
 import Control.Lens (elemOf, lengthOf, traversed)
+import Soltan.Data.Username (Username)
 import Soltan.Hokm.Types
 import Soltan.Hokm.Utils
 import Unsafe.Coerce (unsafeCoerce)
 
-validateAction :: Game -> Action 'Unknown -> Either GameErr (Action 'Valid)
+validateAction :: Game -> Action -> Either GameErr ()
 validateAction game action =
   case action of
     PlayCard idx card ->
@@ -15,7 +16,11 @@ validateAction game action =
         >> isRightSuitToPlay game idx card
     ChooseHokm idx _ -> isChoosingHokmPhase game >> isHakemChoosing game idx
     NextRound -> canNextRound game
-    $> unsafeStatusCoerce action
+    StartGame cards usernames -> canStartGame game cards usernames
+
+canStartGame :: Game -> [Card] -> [Username] -> Either GameErr ()
+canStartGame GameBeforeStart _ _ = Right ()
+canStartGame _ _ _ = Left GameAlreadyStarted
 
 canNextRound :: Game -> Either GameErr ()
 canNextRound (GameEndOfRound _) = Right ()
@@ -54,6 +59,3 @@ isRightSuitToPlay _ _ _ = Left InvalidAction
 
 checkHaveCard :: Game -> PlayerIndex -> Card -> Either GameErr ()
 checkHaveCard game idx card = bool (Left CardNotFound) (Right ()) (haveCard game idx card)
-
-unsafeStatusCoerce :: Action s -> Action s'
-unsafeStatusCoerce = unsafeCoerce

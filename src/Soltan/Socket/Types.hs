@@ -18,6 +18,7 @@ import Soltan.Data.Username (Username)
 import Text.Show
 import Prelude hiding (Show, show)
 import Soltan.Hokm (Game, GameErr, Card, Suit)
+import Soltan.Hokm.Types (GameSummary)
 
 type TableName = Text
 
@@ -82,6 +83,7 @@ data MsgOut
   | ErrMsg Err
   | AuthSuccess
   | NewGameState TableName Game
+  | NewGameStateSummary TableName GameSummary
   | SuccessfullySubscribedToTable TableName Game
   | Noop
   deriving stock (Generic, Show)

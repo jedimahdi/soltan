@@ -1,36 +1,37 @@
-module Soltan.Data.Username
-    ( Error (..)
-    , Errors
-    , Username (..)
-    , mk
-    , pattern Username
-    -- , un
-    ) where
+module Soltan.Data.Username (
+  Error (..),
+  Errors,
+  Username (..),
+  mk,
+  pattern Username,
+  -- , un
+) where
 
-import           Data.Aeson  (FromJSON, FromJSONKey, ToJSON, ToJSONKey)
-import qualified Data.Text   as Text
+import Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey)
+import qualified Data.Text as Text
 
-newtype Username
-  = UnsafeMk { un :: Text }
+newtype Username = UnsafeMk {un :: Text}
   deriving newtype
     ( Eq
     , FromJSON
     , Ord
     , Show
     , ToJSON
+    , IsString
     )
-
 
 pattern Username :: Text -> Username
 pattern Username a <- UnsafeMk a
 {-# COMPLETE Username #-}
 
-data Error = IsEmpty | IsShort | IsLong | IsInvalid deriving stock
+data Error = IsEmpty | IsShort | IsLong | IsInvalid
+  deriving stock
     ( Generic
     , Show
     )
-  -- deriving (ToJSON) via Aeson.FieldErrorFormat Error
-  -- deriving (FromJSON) via Aeson.FieldErrorFormat Error
+
+-- deriving (ToJSON) via Aeson.FieldErrorFormat Error
+-- deriving (FromJSON) via Aeson.FieldErrorFormat Error
 
 type Errors = NonEmpty Error
 

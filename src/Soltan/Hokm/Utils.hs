@@ -4,11 +4,44 @@ import Control.Lens (anyOf, elemOf, lengthOf, traversed, (^..))
 import Data.List (foldl1')
 import Soltan.Data.AtMostThree (AtMostThree (..))
 import Soltan.Data.Username (Username)
+import qualified Soltan.Data.Username as Username
 import Soltan.Hokm.Types hiding (Three, Two)
 
 initialDeck :: [Card]
 initialDeck = Card <$> [minBound ..] <*> [minBound ..]
 
+initialPlayers :: Username -> Username -> Username -> Username -> Players
+initialPlayers u1 u2 u3 u4 =
+  Players
+    { player1 =
+        ( Player
+            { playerName = u1
+            , team = A
+            , cards = []
+            }
+        )
+    , player2 =
+        ( Player
+            { playerName = u2
+            , team = B
+            , cards = []
+            }
+        )
+    , player3 =
+        ( Player
+            { playerName = u3
+            , team = A
+            , cards = []
+            }
+        )
+    , player4 =
+        ( Player
+            { playerName = u4
+            , team = B
+            , cards = []
+            }
+        )
+    }
 haveCard :: Game -> PlayerIndex -> Card -> Bool
 haveCard (GameInProgress g) idx card
   | elemOf (#players . playerL idx . #cards . traversed) card g = True
@@ -25,6 +58,10 @@ getBaseSuit g = case g ^. #board of
 getBaseSuitEndOfRound :: GameEndOfRoundState -> Suit
 getBaseSuitEndOfRound g = g ^. #board . #first . #card . #suit
 
+isEndOfRound :: Game -> Bool
+isEndOfRound (GameEndOfRound _) = True
+isEndOfRound _ = False
+
 haveSuit :: GameInProgressState -> PlayerIndex -> Suit -> Bool
 haveSuit g idx suit = elemOf (#players . playerL idx . #cards . traversed . #suit) suit g
 
@@ -36,7 +73,7 @@ highestOfSuit suit =
 
 findWinnerOfRound :: GameEndOfRoundState -> PlayerIndex
 findWinnerOfRound g
-  | anyOf (#board . traversed . #card . #suit) (== (g ^. #trumpSuit)) g = highestOfSuit (g ^. #trumpSuit) (g ^.. #board . traverse)
+  | elemOf (#board . traversed . #card . #suit) (g ^. #trumpSuit) g = highestOfSuit (g ^. #trumpSuit) (g ^.. #board . traverse)
   | otherwise = highestOfSuit (getBaseSuitEndOfRound g) (g ^.. #board . traverse)
 
 nextPlayerIndexTurn :: PlayerIndex -> PlayerIndex
@@ -179,3 +216,21 @@ mkGameSummary username game@(GameEnd s) = do
       , teamAPoints = s ^. #teamAPoints
       , teamBPoints = s ^. #teamBPoints
       }
+
+splitThreeWayWithRem :: Int -> [a] -> ([a], [a], [a], [a])
+splitThreeWayWithRem n xs =
+  let r = (length xs + n) `quot` 4
+   in ( take r xs
+      , take r (drop r xs)
+      , take r (drop (2 * r) xs)
+      , drop (3 * r) xs
+      )
+
+splitFourWay :: [a] -> ([a], [a], [a], [a])
+splitFourWay xs =
+  let r = length xs `quot` 4
+   in ( take r xs <> take 1 (drop (4 * r) xs)
+      , take r (drop r xs) <> take 1 (drop (4 * r + 1) xs)
+      , take r (drop (2 * r) xs) <> take 1 (drop (4 * r + 2) xs)
+      , take r (drop (3 * r) xs)
+      )

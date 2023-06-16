@@ -20,7 +20,7 @@ initialLobby = do
   pure <| fromList [("Black", table)]
 
 summariseTable :: TableName -> Table -> TableSummary
-summariseTable tableName table = trace (show (table ^. #subscribers)) TableSummary{tableName = tableName, playerCount = lengthOf (#subscribers . traverse) table}
+summariseTable tableName table = TableSummary{tableName = tableName, playerCount = lengthOf (#subscribers . traverse) table}
 
 summariseTables :: Lobby -> [TableSummary]
 summariseTables lobby = (lobby ^@.. itraversed) |> fmap (uncurry summariseTable)

@@ -1,7 +1,7 @@
 packages: ./
 with-compiler: ghc-9.2.7
 optimization: False
-documentation: True
+documentation: False
 write-ghc-environment-files: always
 
 package *

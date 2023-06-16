@@ -18,6 +18,7 @@ data Config = Config
 
 main :: IO ()
 main = do
+  print "helloooo"
   -- let config@Config{..} = Config 8000 5000 (Logger.Message.Scoped Api >$< Logger.logScopedMessageToStdStreams)
   runSocketServer 5000
 

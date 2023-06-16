@@ -5,12 +5,13 @@ import Data.List ((!!))
 import Data.List.Split (chunksOf)
 import Soltan.Data.AtMostThree (AtMostThree (..))
 import Soltan.Data.Four (Four (..))
-import Soltan.Hokm.ActionValidation (unsafeStatusCoerce)
+import Soltan.Data.Username (Username)
+import Soltan.Hokm.ActionValidation (validateAction)
 import Soltan.Hokm.Types (
   Action (..),
-  ActionStatus (Valid),
   Card,
-  Game (GameChoosingHokm, GameEndOfRound, GameInProgress),
+  ChoosingHokmState (..),
+  Game (..),
   GameEndOfRoundState (
     GameEndOfRoundState,
     board,
@@ -22,24 +23,43 @@ import Soltan.Hokm.Types (
     teamBRounds,
     trumpSuit
   ),
+  GameErr,
   GameInProgressState (..),
   PlayedCard (PlayedCard),
-  Player (cards),
+  Player (..),
   PlayerIndex (..),
   Players (Players, player1, player2, player3, player4),
   Suit,
+  Team (..),
   playerL,
   _GameInProgress,
  )
 import Soltan.Hokm.Utils
 import Prelude hiding (first, second)
 
-runAction :: Action 'Valid -> Game -> Game
-runAction action game =
-  game |> case unsafeStatusCoerce action of
-    ChooseHokm idx suit -> chooseHokm idx suit
-    PlayCard idx card -> removeCardFromHand idx card . nextTurn . addPlayerCardToBoard idx card
-    NextRound -> identity
+runAction :: Action -> Game -> Either GameErr Game
+runAction action game = do
+  validateAction game action
+  game
+    |> case action of
+      ChooseHokm idx suit -> chooseHokm idx suit
+      PlayCard idx card -> addPlayerCardToBoard idx card . removeCardFromHand idx card . nextTurn
+      NextRound -> nextRound
+      StartGame deck usernames -> startGame deck usernames
+    |> pure
+
+startGame :: [Card] -> [Username] -> Game -> Game
+startGame deck usernames GameBeforeStart =
+  GameChoosingHokm
+    <| ChoosingHokmState
+      { hakem = Player1
+      , remainingDeck = drop 5 deck
+      , players =
+          initialPlayers (usernames !! 0) (usernames !! 1) (usernames !! 2) (usernames !! 3)
+            |> #player1 . #cards
+            .~ take 5 deck
+      }
+startGame _ _ g = g
 
 nextRound :: Game -> Game
 nextRound (GameEndOfRound g@(GameEndOfRoundState{..})) =
@@ -63,7 +83,7 @@ chooseHokm idx suit (GameChoosingHokm g) = GameInProgress initialInProgress
       , teamARounds = 0
       , teamBRounds = 0
       }
-  [player1Cards, player2Cards, player3Cards, hakemCards'] = g ^. #remainingDeck |> chunksOf 13
+  (player1Cards, player2Cards, player3Cards, hakemCards') = g ^. #remainingDeck |> splitThreeWayWithRem 5
   hakemCards = hakemCards' <> g ^. #players . playerL (g ^. #hakem) . #cards
   newPlayers = case g ^. #hakem of
     Player1 ->
