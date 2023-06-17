@@ -31,12 +31,14 @@ choosingHokmFixture =
             [Card Three Spades, Card Ace Hearts, Card King Diamonds, Card Four Diamonds, Card Two Diamonds]
             []
             []
+      , teamAPoints = 0
+      , teamBPoints = 0
       }
 
-gameEndOfRoundFixture :: Game
-gameEndOfRoundFixture =
-  GameEndOfRound
-    <| GameEndOfRoundState
+gameEndOfTrickFixture :: Game
+gameEndOfTrickFixture =
+  GameEndOfTrick
+    <| GameEndOfTrickState
       { hakem = Player2
       , trumpSuit = Clubs
       , board =
@@ -47,8 +49,8 @@ gameEndOfRoundFixture =
             (PlayedCard (Card Queen Spades) Player3)
       , teamAPoints = 0
       , teamBPoints = 0
-      , teamARounds = 0
-      , teamBRounds = 0
+      , teamATricks = 0
+      , teamBTricks = 0
       , players =
           initialTestPlayers
             [Card Four Diamonds, Card Two Diamonds]
@@ -76,8 +78,8 @@ gameInProgresFixture =
             )
       , teamAPoints = 0
       , teamBPoints = 0
-      , teamARounds = 0
-      , teamBRounds = 0
+      , teamATricks = 0
+      , teamBTricks = 0
       , players =
           initialTestPlayers
             [Card Four Diamonds, Card Three Spades]
@@ -93,9 +95,6 @@ gameEndFixture =
       { winnerTeam = A
       , teamAPoints = 1
       , teamBPoints = 0
-      , teamARounds = 0
-      , teamBRounds = 0
-      , prevHakem = Player2
       , players = initialTestPlayers [] [] [] []
       }
 
@@ -129,8 +128,3 @@ spec = describe "validateAction" do
     it "should return validated Action if player can play the card" do
       let action = PlayCard Player1 (Card Three Spades)
       validateAction gameInProgresFixture action `shouldBe` Right ()
-
-  describe "NextRound Action" do
-    it "should return validated Action if all players played their card in the round" do
-      let action = NextRound
-      validateAction gameEndOfRoundFixture action `shouldBe` Right ()

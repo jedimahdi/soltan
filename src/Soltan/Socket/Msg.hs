@@ -5,6 +5,7 @@ module Soltan.Socket.Msg where
 import Control.Lens (elemOf, ix, (<>~), (^?))
 import Pipes (Pipe, await, runEffect, yield, (>->))
 import Pipes.Concurrent (Output, send)
+import qualified Soltan.Data.Four as Four
 import Soltan.Data.Has (grab)
 import Soltan.Data.Username (Username)
 import Soltan.Effects.Concurrent (Concurrent)
@@ -14,7 +15,10 @@ import qualified Soltan.Effects.Lobby as Lobby
 import Soltan.Effects.LogMessages (LogMessages)
 import qualified Soltan.Effects.LogMessages as Logger
 import Soltan.Effects.Now (Now)
+import Soltan.Effects.Random (MonadRandom)
+import qualified Soltan.Effects.Random as Random
 import Soltan.Hokm (Game, initialDeck, runAction, validateAction)
+import Soltan.Hokm.Hokm (startGame)
 import Soltan.Hokm.Types (Action (..), PlayerIndex)
 import Soltan.Hokm.Utils (getPlayerIndexWithUsername)
 import Soltan.Socket.Lobby (summariseTables)
@@ -39,7 +43,7 @@ msgHandler _ GetTables = getTablesHandler
 msgHandler client (SubscribeToTable tableName) = subscribeToTableHandler tableName client
 msgHandler client (GameMsgIn msg) = gameMsgHandler msg client
 
-withTable :: ManageLobby m => TableName -> (Table -> m (Either Err r)) -> m (Either Err r)
+withTable :: (ManageLobby m) => TableName -> (Table -> m (Either Err r)) -> m (Either Err r)
 withTable tableName = Lobby.withTable tableName (pure . Left <| TableDoesNotExist tableName)
 
 runPlayerAction :: TableName -> Game -> Action -> Either Err MsgOut
@@ -66,7 +70,7 @@ gameMsgHandler msg client = do
  where
   username = client ^. #username
 
-subscribeToTableHandler :: (ManageLobby m, Concurrent m, LogMessages m, Now m) => TableName -> Client -> m (Either Err MsgOut)
+subscribeToTableHandler :: (ManageLobby m, Concurrent m, LogMessages m, Now m, MonadRandom m) => TableName -> Client -> m (Either Err MsgOut)
 subscribeToTableHandler tableName client = do
   Lobby.withTable tableName pass \table -> do
     let username = client ^. #username
@@ -77,14 +81,14 @@ subscribeToTableHandler tableName client = do
 
   withTable tableName \table -> do
     let subscribers = table ^. #subscribers
-    when (length subscribers == 4) do
-      let deck = initialDeck
-      let eNewGame = runAction (StartGame deck subscribers) (table ^. #game)
-      case eNewGame of
-        Left e -> pass
-        Right newGame -> do
-          Logger.info <| "Starting game with users " <> show subscribers <> " and game is " <> show newGame
-          runEffect <| yield newGame >-> Concurrent.toOutput (table ^. #gameInMailbox)
+    case Four.mkFromList subscribers of
+      Nothing -> pass
+      Just users -> do
+        gen <- Random.generateStdGen
+        let newGame = startGame gen users (table ^. #game)
+        Logger.info <| "Starting game with users " <> show subscribers <> " and game is " <> show newGame
+        runEffect <| yield newGame >-> Concurrent.toOutput (table ^. #gameInMailbox)
+
     pure . Right <| SuccessfullySubscribedToTable tableName (table ^. #game)
 
 getTablesHandler :: ManageLobby m => m (Either Err MsgOut)

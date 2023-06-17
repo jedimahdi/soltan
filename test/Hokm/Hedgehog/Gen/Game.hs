@@ -76,8 +76,8 @@ genInProgressGame GenerateGameInProgressInfo{..} = do
   p4 <- genPlayer B player4Cards
   teamAPoints <- Point . fromIntegral <$> Gen.int (Range.constant 0 5)
   teamBPoints <- Point . fromIntegral <$> Gen.int (Range.constant 0 5)
-  teamARounds <- Round . fromIntegral <$> Gen.int (Range.constant 0 5)
-  teamBRounds <- Round . fromIntegral <$> Gen.int (Range.constant 0 5)
+  teamATricks <- Trick . fromIntegral <$> Gen.int (Range.constant 0 5)
+  teamBTricks <- Trick . fromIntegral <$> Gen.int (Range.constant 0 5)
   let players = Players p1 p2 p3 p4
   let gameBoard = case board of
         [c1, c2, c3] -> AtMostThree.Three c1 c2 c3

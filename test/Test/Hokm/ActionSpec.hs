@@ -14,7 +14,7 @@ import qualified Soltan.Data.Username as Username
 import Soltan.Hokm.Action
 import Soltan.Hokm.ActionValidation
 import Soltan.Hokm.Types
-import Soltan.Hokm.Utils (findWinnerOfRound, getBaseSuit, getBaseSuitEndOfRound, initialDeck, initialPlayers, playersToList)
+import Soltan.Hokm.Utils (findWinnerOfTrick, getBaseSuit, getBaseSuitEndOfTrick, initialDeck, mkPlayers, playersToList)
 import Test.Hspec (Spec, before, describe, it, shouldBe, shouldContain)
 import Test.Hspec.Hedgehog (forAll, hedgehog, (/==), (===))
 import Prelude hiding (state)
@@ -33,6 +33,8 @@ choosingHokmFixture =
             [Card Three Spades, Card Ace Hearts, Card King Diamonds, Card Four Diamonds, Card Two Diamonds]
             []
             []
+      , teamAPoints = 0
+      , teamBPoints = 0
       }
 
 isInProgressState :: Game -> Bool
@@ -46,32 +48,6 @@ rankAndSuitCardOrdering (Card rank1 suit1) (Card rank2 suit2) = case compare sui
 
 spec :: Spec
 spec = describe "runAction" do
-  it "should find winner of round" do
-    let state =
-          GameEndOfRoundState
-            { players = initialTestPlayers [] [] [] []
-            , teamAPoints = 0
-            , teamBPoints = 0
-            , teamARounds = 0
-            , teamBRounds = 0
-            , hakem = Player1
-            , trumpSuit = Spades
-            , board =
-                Four.Four
-                  (PlayedCard (Card Jack Diamonds) Player4)
-                  (PlayedCard (Card King Diamonds) Player1)
-                  (PlayedCard (Card Three Diamonds) Player2)
-                  (PlayedCard (Card Seven Diamonds) Player3)
-            }
-    state ^.. #board . traverse
-      `shouldBe` [ PlayedCard (Card Jack Diamonds) Player4
-                 , PlayedCard (Card King Diamonds) Player1
-                 , PlayedCard (Card Three Diamonds) Player2
-                 , PlayedCard (Card Seven Diamonds) Player3
-                 ]
-    getBaseSuitEndOfRound state `shouldBe` Diamonds
-    findWinnerOfRound state `shouldBe` Player1
-
   it "ChooseHokm Action" do
     hedgehog do
       (game, state) <- forAll genChoosingHokmGame
@@ -88,8 +64,8 @@ spec = describe "runAction" do
       sortBy rankAndSuitCardOrdering (players ^.. traverse . #cards . traverse) === sortBy rankAndSuitCardOrdering initialDeck
       newGameState ^. #teamAPoints === 0
       newGameState ^. #teamBPoints === 0
-      newGameState ^. #teamARounds === 0
-      newGameState ^. #teamBRounds === 0
+      newGameState ^. #teamATricks === 0
+      newGameState ^. #teamBTricks === 0
   it "PlayCard Action" do
     hedgehog do
       (game, state) <- forAll genInProgressGame_

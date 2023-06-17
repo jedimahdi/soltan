@@ -85,8 +85,6 @@ data Player = Player
 data Action
   = PlayCard PlayerIndex Card
   | ChooseHokm PlayerIndex Suit
-  | NextRound
-  | StartGame [Card] [Username]
 
 deriving stock instance Eq Action
 deriving stock instance Show Action
@@ -95,7 +93,7 @@ data GameErr
   = NoPlayerCanPlay
   | OutOfTurn PlayerIndex
   | CardNotFound
-  | EndOfRound
+  | EndOfTrick
   | GameNotStarted
   | GameAlreadyStarted
   | GameHasEnded
@@ -103,14 +101,14 @@ data GameErr
   | WrongSuit
   | NoChoosingHokmPhase
   | NotHakem
-  | NotEndOfRound
+  | NotEndOfTrick
   deriving (Show, Eq, Generic, ToJSON, FromJSON, Exception)
 
 data Game
   = GameBeforeStart
   | GameChoosingHokm ChoosingHokmState
   | GameInProgress GameInProgressState
-  | GameEndOfRound GameEndOfRoundState
+  | GameEndOfTrick GameEndOfTrickState
   | GameEnd GameEndState
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON)
@@ -119,6 +117,8 @@ data ChoosingHokmState = ChoosingHokmState
   { remainingDeck :: [Card]
   , hakem :: PlayerIndex
   , players :: Players
+  , teamAPoints :: Point
+  , teamBPoints :: Point
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON)
@@ -131,21 +131,21 @@ data GameInProgressState = GameInProgressState
   , board :: AtMostThree PlayedCard
   , teamAPoints :: Point
   , teamBPoints :: Point
-  , teamARounds :: Round
-  , teamBRounds :: Round
+  , teamATricks :: Trick
+  , teamBTricks :: Trick
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON)
 
-data GameEndOfRoundState = GameEndOfRoundState
+data GameEndOfTrickState = GameEndOfTrickState
   { hakem :: PlayerIndex
   , trumpSuit :: Suit
   , players :: Players
   , board :: Four PlayedCard
   , teamAPoints :: Point
   , teamBPoints :: Point
-  , teamARounds :: Round
-  , teamBRounds :: Round
+  , teamATricks :: Trick
+  , teamBTricks :: Trick
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON)
@@ -153,23 +153,20 @@ data GameEndOfRoundState = GameEndOfRoundState
 data GameEndState = GameEndState
   { winnerTeam :: Team
   , players :: Players
-  , prevHakem :: PlayerIndex
   , teamAPoints :: Point
   , teamBPoints :: Point
-  , teamARounds :: Round
-  , teamBRounds :: Round
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON)
 
-newtype Round = Round Natural
+newtype Trick = Trick Natural
   deriving stock (Show, Generic)
-  deriving newtype (Num, Eq)
+  deriving newtype (Num, Eq, Ord)
   deriving anyclass (ToJSON)
 
 newtype Point = Point Natural
   deriving stock (Show, Generic)
-  deriving newtype (Num, Eq)
+  deriving newtype (Num, Eq, Ord)
   deriving anyclass (ToJSON)
 
 data PlayedCard = PlayedCard
@@ -227,7 +224,7 @@ data GameSummaryStatus
   = SummaryNotStarted
   | SummaryChoosingHokm
   | SummaryInProgress
-  | SummaryEndOfRound
+  | SummaryEndOfTrick
   | SummaryEndOfGame
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON)
@@ -240,8 +237,8 @@ data GameSummary = GameSummary
   , turn :: Maybe Username
   , trumpSuit :: Maybe Suit
   , board :: [PlayedCard]
-  , teamARounds :: Round
-  , teamBRounds :: Round
+  , teamATricks :: Trick
+  , teamBTricks :: Trick
   , teamAPoints :: Point
   , teamBPoints :: Point
   }

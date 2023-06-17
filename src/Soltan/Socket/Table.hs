@@ -1,4 +1,5 @@
 {-# LANGUAGE NumericUnderscores #-}
+
 module Soltan.Socket.Table where
 
 import Control.Lens (ix, (^?))
@@ -10,9 +11,11 @@ import Soltan.Data.Username (Username)
 import Soltan.Effects.LogMessages (LogMessages)
 import qualified Soltan.Effects.LogMessages as Logger
 import Soltan.Hokm (Action (..), runAction)
+import Soltan.Hokm.Hokm (nextStage)
 import Soltan.Hokm.Types (Game)
-import Soltan.Hokm.Utils (isEndOfRound, mkGameSummary)
+import Soltan.Hokm.Utils (isEndOfTrick, mkGameSummary)
 import Soltan.Socket.Types (Client (..), MsgOut (..), ServerState (..), Table (..), TableName, WithServerState)
+import System.Random (StdGen, getStdGen)
 import UnliftIO (MonadUnliftIO, async)
 import UnliftIO.Concurrent (threadDelay)
 
@@ -33,14 +36,12 @@ setupTablePipeline s tableName Table{..} = do
 nextRound :: (MonadIO m) => TVar ServerState -> TableName -> Consumer Game m ()
 nextRound s tableName = do
   game <- await
-  when (isEndOfRound game) do
+  when (isEndOfTrick game) do
     threadDelay 1_000_000
     withTable s tableName pass \table -> do
-      let eNewGame = runAction NextRound game
-      case eNewGame of
-        Left e -> pass
-        Right newGame ->
-          runEffect $ yield newGame >-> toOutput (table ^. #gameInMailbox)
+      gen <- getStdGen
+      let newGame = nextStage gen game
+      runEffect $ yield newGame >-> toOutput (table ^. #gameInMailbox)
 
 logPipe :: MonadIO m => Show a => Pipe a a m ()
 logPipe = do

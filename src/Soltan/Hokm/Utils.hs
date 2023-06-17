@@ -1,44 +1,46 @@
 module Soltan.Hokm.Utils where
 
 import Control.Lens (anyOf, elemOf, lengthOf, traversed, (^..))
-import Data.List (foldl1')
+import Data.List (foldl, foldl1', head, tail)
+import Data.Map.Lazy (Map)
+import qualified Data.Map.Lazy as M
 import Soltan.Data.AtMostThree (AtMostThree (..))
+import qualified Soltan.Data.Four as Four
 import Soltan.Data.Username (Username)
 import qualified Soltan.Data.Username as Username
 import Soltan.Hokm.Types hiding (Three, Two)
+import System.Random (Random (randomR), RandomGen)
+import Prelude hiding (head, tail)
 
-initialDeck :: [Card]
-initialDeck = Card <$> [minBound ..] <*> [minBound ..]
-
-initialPlayers :: Username -> Username -> Username -> Username -> Players
-initialPlayers u1 u2 u3 u4 =
+mkPlayers :: (Username, [Card]) -> (Username, [Card]) -> (Username, [Card]) -> (Username, [Card]) -> Players
+mkPlayers (u1, c1) (u2, c2) (u3, c3) (u4, c4) =
   Players
     { player1 =
         ( Player
             { playerName = u1
             , team = A
-            , cards = []
+            , cards = c1
             }
         )
     , player2 =
         ( Player
             { playerName = u2
             , team = B
-            , cards = []
+            , cards = c2
             }
         )
     , player3 =
         ( Player
             { playerName = u3
             , team = A
-            , cards = []
+            , cards = c3
             }
         )
     , player4 =
         ( Player
             { playerName = u4
             , team = B
-            , cards = []
+            , cards = c4
             }
         )
     }
@@ -55,12 +57,12 @@ getBaseSuit g = case g ^. #board of
   Two x _ -> Just <| x ^. #card . #suit
   Three x _ _ -> Just <| x ^. #card . #suit
 
-getBaseSuitEndOfRound :: GameEndOfRoundState -> Suit
-getBaseSuitEndOfRound g = g ^. #board . #first . #card . #suit
+getBaseSuitEndOfTrick :: GameEndOfTrickState -> Suit
+getBaseSuitEndOfTrick g = g ^. #board . #first . #card . #suit
 
-isEndOfRound :: Game -> Bool
-isEndOfRound (GameEndOfRound _) = True
-isEndOfRound _ = False
+isEndOfTrick :: Game -> Bool
+isEndOfTrick (GameEndOfTrick _) = True
+isEndOfTrick _ = False
 
 haveSuit :: GameInProgressState -> PlayerIndex -> Suit -> Bool
 haveSuit g idx suit = elemOf (#players . playerL idx . #cards . traversed . #suit) suit g
@@ -71,10 +73,10 @@ highestOfSuit suit =
     . foldl1' (\p1@(PlayedCard card1 _) p2@(PlayedCard card2 _) -> if card1 >= card2 then p1 else p2)
     . filter (\p -> p ^. #card . #suit == suit)
 
-findWinnerOfRound :: GameEndOfRoundState -> PlayerIndex
-findWinnerOfRound g
+findWinnerOfTrick :: GameEndOfTrickState -> PlayerIndex
+findWinnerOfTrick g
   | elemOf (#board . traversed . #card . #suit) (g ^. #trumpSuit) g = highestOfSuit (g ^. #trumpSuit) (g ^.. #board . traverse)
-  | otherwise = highestOfSuit (getBaseSuitEndOfRound g) (g ^.. #board . traverse)
+  | otherwise = highestOfSuit (getBaseSuitEndOfTrick g) (g ^.. #board . traverse)
 
 nextPlayerIndexTurn :: PlayerIndex -> PlayerIndex
 nextPlayerIndexTurn Player1 = Player2
@@ -85,7 +87,7 @@ nextPlayerIndexTurn Player4 = Player1
 getPlayers :: Game -> Maybe Players
 getPlayers (GameChoosingHokm g) = Just <| g ^. #players
 getPlayers (GameInProgress g) = Just <| g ^. #players
-getPlayers (GameEndOfRound g) = Just <| g ^. #players
+getPlayers (GameEndOfTrick g) = Just <| g ^. #players
 getPlayers (GameEnd g) = Just <| g ^. #players
 getPlayers _ = Nothing
 
@@ -125,8 +127,8 @@ mkGameSummary _ GameBeforeStart =
       , trumpSuit = Nothing
       , turn = Nothing
       , board = []
-      , teamARounds = 0
-      , teamBRounds = 0
+      , teamATricks = 0
+      , teamBTricks = 0
       , teamAPoints = 0
       , teamBPoints = 0
       }
@@ -146,10 +148,10 @@ mkGameSummary username game@(GameChoosingHokm s) = do
       , trumpSuit = Nothing
       , turn = Nothing
       , board = []
-      , teamARounds = 0
-      , teamBRounds = 0
-      , teamAPoints = 0
-      , teamBPoints = 0
+      , teamATricks = 0
+      , teamBTricks = 0
+      , teamAPoints = s ^. #teamAPoints
+      , teamBPoints = s ^. #teamBPoints
       }
 mkGameSummary username game@(GameInProgress s) = do
   idx <- getPlayerIndexWithUsername username game
@@ -169,12 +171,12 @@ mkGameSummary username game@(GameInProgress s) = do
       , trumpSuit = Just (s ^. #trumpSuit)
       , turn = Just turn
       , board
-      , teamARounds = s ^. #teamARounds
-      , teamBRounds = s ^. #teamBRounds
+      , teamATricks = s ^. #teamATricks
+      , teamBTricks = s ^. #teamBTricks
       , teamAPoints = s ^. #teamAPoints
       , teamBPoints = s ^. #teamBPoints
       }
-mkGameSummary username game@(GameEndOfRound s) = do
+mkGameSummary username game@(GameEndOfTrick s) = do
   idx <- getPlayerIndexWithUsername username game
   let players = s ^. #players
   let player = players ^. playerL idx
@@ -184,15 +186,15 @@ mkGameSummary username game@(GameEndOfRound s) = do
   let board = s ^. #board |> toList
   pure
     GameSummary
-      { status = SummaryEndOfRound
+      { status = SummaryEndOfTrick
       , cards
       , players = playersSummary
       , hakem = Just hakem
       , trumpSuit = Just (s ^. #trumpSuit)
       , turn = Nothing
       , board
-      , teamARounds = s ^. #teamARounds
-      , teamBRounds = s ^. #teamBRounds
+      , teamATricks = s ^. #teamATricks
+      , teamBTricks = s ^. #teamBTricks
       , teamAPoints = s ^. #teamAPoints
       , teamBPoints = s ^. #teamBPoints
       }
@@ -204,15 +206,15 @@ mkGameSummary username game@(GameEnd s) = do
   let playersSummary = mkPlayersSummary players
   pure
     GameSummary
-      { status = SummaryEndOfRound
+      { status = SummaryEndOfTrick
       , cards
       , players = playersSummary
       , hakem = Nothing
       , trumpSuit = Nothing
       , turn = Nothing
       , board = []
-      , teamARounds = s ^. #teamARounds
-      , teamBRounds = s ^. #teamBRounds
+      , teamATricks = 0
+      , teamBTricks = 0
       , teamAPoints = s ^. #teamAPoints
       , teamBPoints = s ^. #teamBPoints
       }
@@ -234,3 +236,27 @@ splitFourWay xs =
       , take r (drop (2 * r) xs) <> take 1 (drop (4 * r + 2) xs)
       , take r (drop (3 * r) xs)
       )
+
+initialDeck :: [Card]
+initialDeck = Card <$> [minBound ..] <*> [minBound ..]
+
+-- Get a shuffled deck of cards.
+shuffledDeck :: RandomGen g => g -> [Card]
+shuffledDeck gen = fst <| shuffle gen initialDeck
+
+fisherYatesStep :: RandomGen g => (Map Int a, g) -> (Int, a) -> (Map Int a, g)
+fisherYatesStep (m, gen) (i, x) =
+  ((M.insert j x . M.insert i (m M.! j)) m, gen')
+ where
+  (j, gen') = randomR (0, i) gen
+
+-- shuffle using the Fisher Yates algorithm
+shuffle :: RandomGen g => g -> [a] -> ([a], g)
+shuffle gen [] = ([], gen)
+shuffle gen l =
+  toElems $
+    foldl fisherYatesStep (initial (head l) gen) (numerate (tail l))
+ where
+  toElems (x, y) = (M.elems x, y)
+  numerate = zip [1 ..]
+  initial x gen' = (M.singleton 0 x, gen')

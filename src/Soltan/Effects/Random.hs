@@ -1,9 +1,10 @@
 module Soltan.Effects.Random where
 
+import Soltan.SocketApp (SocketApp)
+import System.Random (StdGen, getStdGen)
 
-newtype Shuffled f = Shuffled f
+class Monad m => MonadRandom m where
+  generateStdGen :: m StdGen
 
-
-type A = [Int]
-
-type B = Shuffled [Int]
+instance MonadRandom SocketApp where
+  generateStdGen = getStdGen
