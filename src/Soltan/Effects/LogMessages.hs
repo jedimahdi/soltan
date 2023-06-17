@@ -22,6 +22,8 @@ class Monad m => LogMessages m where
 instance LogMessages SocketApp where
   logMessage = logMsg
 
+type HasLog m = (LogMessages m, Now m)
+
 type WithLog env m = Colog.WithLog env Message.Minimal m
 
 log :: LogMessages m => Now m => Severity -> Text -> m ()

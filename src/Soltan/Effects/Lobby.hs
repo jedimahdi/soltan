@@ -8,20 +8,24 @@ import Soltan.Socket.Types (Lobby, ServerState, Table, TableName)
 import Soltan.SocketApp (SocketApp)
 import UnliftIO.STM (modifyTVar)
 
-class Monad m => ManageLobby m where
+class Monad m => AcquireLobby m where
   getTable :: TableName -> m (Maybe Table)
   getLobby :: m Lobby
+
+class AcquireLobby m => UpdateLobby m where
   updateGame :: TableName -> Game -> m ()
   addSubscriber :: TableName -> Username -> m ()
 
--- <| modifyTVar' serverStateTVar (#lobby . ix tableName . #subscribers <>~ [username])
+type ManageLobby m = (AcquireLobby m, UpdateLobby m)
 
-withTable :: ManageLobby m => TableName -> m r -> (Table -> m r) -> m r
+withTable :: AcquireLobby m => TableName -> m r -> (Table -> m r) -> m r
 withTable tableName onFail app = getTable tableName >>= maybe onFail app
 
-instance ManageLobby SocketApp where
+instance AcquireLobby SocketApp where
   getTable = getTableImpl
   getLobby = getLobbyImpl
+
+instance UpdateLobby SocketApp where
   updateGame = updateGameImpl
   addSubscriber = addSubscriberImpl
 

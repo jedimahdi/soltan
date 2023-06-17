@@ -7,10 +7,11 @@ module Soltan.Socket where
 import qualified Control.Concurrent.STM as STM
 import Control.Lens (itraverse, itraversed, ix, (^..), (^?))
 import qualified Data.Aeson as Aeson
+import qualified Data.ByteString as BS
 import Data.Generics.Labels ()
 import Data.Map as Map
 import qualified Network.WebSockets as WS
-import Pipes (Pipe, Producer, await, for, runEffect, yield, (>->))
+import Pipes (Consumer, Pipe, Producer, Producer', await, for, runEffect, yield, (>->))
 import qualified Pipes.Aeson
 import Pipes.Concurrent (Input, Output, newest)
 import Pipes.Parse (draw)
@@ -26,6 +27,7 @@ import qualified Soltan.Effects.Lobby as Lobby
 import Soltan.Effects.LogMessages (LogMessages)
 import qualified Soltan.Effects.LogMessages as Logger
 import Soltan.Effects.Now (Now)
+import Soltan.Effects.Random (MonadRandom)
 import Soltan.Effects.WebSocket (WebSocket)
 import qualified Soltan.Effects.WebSocket as WebSocket
 import Soltan.Hokm.Types (Game)
@@ -36,6 +38,7 @@ import Soltan.Socket.Prelude
 import Soltan.Socket.Table (setupTablePipeline, withTable)
 import Soltan.Socket.Types (
   Client (..),
+  Command (..),
   Err (..),
   Lobby,
   MsgHandlerConfig (..),
@@ -49,12 +52,26 @@ import Soltan.Socket.Types (
  )
 import Soltan.Socket.Utils (encodeMsgToJSON)
 import Soltan.SocketApp (mkEnv, runSocketApp, runWithClient)
-import UnliftIO (MonadUnliftIO)
+import UnliftIO (MonadUnliftIO, finally)
 import UnliftIO.Async (Async, async)
-import qualified Data.ByteString as BS
 
 initialServerState :: Lobby -> ServerState
 initialServerState lobby = ServerState{clients = mempty, lobby = lobby}
+
+runRun :: Int -> IO ()
+runRun port = do
+  lobby <- initialLobby
+  serverStateTVar <- newTVarIO (initialServerState lobby)
+  -- let env = mkEnv serverState
+  -- runSocketApp env app
+  traverse_
+    (uncurry $ setupTablePipeline serverStateTVar)
+    (Map.toList lobby)
+
+run :: WebSocket.WebSocketServer m => Int -> m ()
+run port = do
+  WebSocket.runServer port \conn -> do
+    pass
 
 runSocketServer :: Int -> IO ()
 runSocketServer port = do
@@ -85,14 +102,15 @@ wreceiveJSON = do
   pure m
 
 wproducer :: forall a m. (WebSocket m, FromJSON a, LogMessages m, Now m, Show a) => Producer a m ()
-wproducer = void . infinitely <| do
-  mMsg <- lift wreceiveJSON
-  case mMsg of
-    Nothing -> lift <| Logger.warning "Msg format is wrong"
-    Just msg -> yield msg
+wproducer =
+  void . infinitely <| do
+    mMsg <- lift wreceiveJSON
+    case mMsg of
+      Nothing -> lift <| Logger.warning "Msg format is wrong"
+      Just msg -> yield msg
 
-app :: AppL ()
-app = authenticateClient >>= either authenticateFailed go
+app :: (WebSocket m, LogMessages m, Now m, ManageLobby m, ManageClients m, Concurrent m, MonadRandom m) => m ()
+app = authenticateClient >>= either authenticateFailed (\username -> go username `Concurrent.finally` disconnect username)
  where
   go username = do
     WebSocket.sendJSON AuthSuccess
@@ -114,6 +132,11 @@ app = authenticateClient >>= either authenticateFailed go
 
   authenticateFailed = WebSocket.sendJSON . ErrMsg
 
+disconnect :: Username -> AppL ()
+disconnect username = do
+  Logger.debug <| show username <> " Disconnected..."
+  Clients.removeClient username
+
 msgOutsWorker :: (Concurrent m, WebSocket m) => Input MsgOut -> m ()
 msgOutsWorker readMsgOutSource = void . infinitely . runEffect <| pipeline
  where
@@ -124,18 +147,16 @@ msgInsWorker readMsgInSource writeMsgOutSource client = void . infinitely . runE
  where
   pipeline =
     Concurrent.fromInput readMsgInSource
-      >-> Pipes.mapM (handleMsgIns client)
-      >-> handleNewGameStateMsgOutPipe
+      >-> Pipes.mapM (msgHandler client)
+      >-> runCommands writeMsgOutSource
       >-> Concurrent.toOutput writeMsgOutSource
 
-handleMsgIns :: Client -> MsgIn -> LangL MsgOut
-handleMsgIns client = fmap (either ErrMsg identity) . msgHandler client
-
-handleNewGameStateMsgOutPipe :: (ManageLobby m, Concurrent m) => Pipe MsgOut MsgOut m ()
-handleNewGameStateMsgOutPipe = do
-  msgOut <- await
-  case msgOut of
-    NewGameState tableName game -> do
-      lift <| Lobby.withTable tableName pass \table ->
-        runEffect <| yield game >-> Concurrent.toOutput (table ^. #gameInMailbox)
-    _ -> yield msgOut
+runCommands :: forall m. (Concurrent m, ManageLobby m) => Output MsgOut -> Pipe (Either Err [Command]) MsgOut m ()
+runCommands writeMsgOutSource = await >>= either (yield . ErrMsg) (traverse_ interpretCommand)
+ where
+  interpretCommand :: Command -> Producer' MsgOut m ()
+  interpretCommand (SendMsg msgOut) = yield msgOut
+  interpretCommand (JoinLobby tableName username) = lift <| Lobby.addSubscriber tableName username
+  interpretCommand (NewGameState tableName game) =
+    lift <| Lobby.withTable tableName pass \table ->
+      runEffect <| yield game >-> Concurrent.toOutput (table ^. #gameInMailbox)

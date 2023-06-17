@@ -3,6 +3,7 @@
 module Soltan.Socket.Msg where
 
 import Control.Lens (elemOf, ix, (<>~), (^?))
+import qualified Data.List as List
 import Pipes (Pipe, await, runEffect, yield, (>->))
 import Pipes.Concurrent (Output, send)
 import qualified Soltan.Data.Four as Four
@@ -10,9 +11,9 @@ import Soltan.Data.Has (grab)
 import Soltan.Data.Username (Username)
 import Soltan.Effects.Concurrent (Concurrent)
 import qualified Soltan.Effects.Concurrent as Concurrent
-import Soltan.Effects.Lobby (ManageLobby)
+import Soltan.Effects.Lobby (AcquireLobby, ManageLobby)
 import qualified Soltan.Effects.Lobby as Lobby
-import Soltan.Effects.LogMessages (LogMessages)
+import Soltan.Effects.LogMessages (HasLog, LogMessages)
 import qualified Soltan.Effects.LogMessages as Logger
 import Soltan.Effects.Now (Now)
 import Soltan.Effects.Random (MonadRandom)
@@ -25,73 +26,65 @@ import Soltan.Socket.Lobby (summariseTables)
 import Soltan.Socket.Prelude
 import Soltan.Socket.Types (
   Client,
+  Command (..),
   Err (..),
   GameMsgIn (..),
   MsgHandlerConfig (..),
   MsgIn (..),
   MsgOut (..),
-  ServerState (ServerState, clients, lobby),
   Table (..),
   TableDoesNotExistInLobby (..),
   TableName,
-  WithClient,
-  WithServerState,
  )
 
-msgHandler :: Client -> MsgIn -> LangL (Either Err MsgOut)
+msgHandler :: (AcquireLobby m, HasLog m, MonadRandom m) => Client -> MsgIn -> m (Either Err [Command])
 msgHandler _ GetTables = getTablesHandler
 msgHandler client (SubscribeToTable tableName) = subscribeToTableHandler tableName client
 msgHandler client (GameMsgIn msg) = gameMsgHandler msg client
 
-withTable :: (ManageLobby m) => TableName -> (Table -> m (Either Err r)) -> m (Either Err r)
+withTable :: AcquireLobby m => TableName -> (Table -> m (Either Err r)) -> m (Either Err r)
 withTable tableName = Lobby.withTable tableName (pure . Left <| TableDoesNotExist tableName)
-
-runPlayerAction :: TableName -> Game -> Action -> Either Err MsgOut
-runPlayerAction tableName game action =
-  runAction action game |> bimap GameErr (NewGameState tableName)
 
 withPlayerIndex :: Applicative m => Username -> Game -> (PlayerIndex -> m (Either Err r)) -> m (Either Err r)
 withPlayerIndex username game f = maybe (pure . Left <| PlayerNotInTheGame) f (getPlayerIndexWithUsername username game)
 
-gameMsgHandler :: (ManageLobby m, LogMessages m, Now m) => GameMsgIn -> Client -> m (Either Err MsgOut)
+runPlayerAction :: AcquireLobby m => TableName -> Username -> (PlayerIndex -> Action) -> m (Either Err [Command])
+runPlayerAction tableName username mkAction =
+  withTable tableName \table -> do
+    let game = table ^. #game
+    withPlayerIndex username game \playerIndex ->
+      runAction (mkAction playerIndex) game |> bimap GameErr (NewGameState tableName) |> fmap List.singleton |> pure
+
+gameMsgHandler :: (AcquireLobby m, HasLog m) => GameMsgIn -> Client -> m (Either Err [Command])
 gameMsgHandler msg client = do
   Logger.debug <| "Game Msg In handler for " <> show msg
   case msg of
     PlayCardMsg tableName card ->
-      withTable tableName \table -> do
-        let game = table ^. #game
-        withPlayerIndex username game \playerIndex ->
-          pure <| runPlayerAction tableName game (PlayCard playerIndex card)
+      runPlayerAction tableName username (`PlayCard` card)
     ChooseHokmMsg tableName suit ->
-      withTable tableName \table -> do
-        let game = table ^. #game
-        withPlayerIndex username game \playerIndex ->
-          pure <| runPlayerAction tableName game (ChooseHokm playerIndex suit)
+      runPlayerAction tableName username (`ChooseHokm` suit)
  where
   username = client ^. #username
 
-subscribeToTableHandler :: (ManageLobby m, Concurrent m, LogMessages m, Now m, MonadRandom m) => TableName -> Client -> m (Either Err MsgOut)
+subscribeToTableHandler :: (AcquireLobby m, HasLog m, MonadRandom m) => TableName -> Client -> m (Either Err [Command])
 subscribeToTableHandler tableName client = do
-  Lobby.withTable tableName pass \table -> do
+  withTable tableName \table -> do
     let username = client ^. #username
     let subscribers = table ^. #subscribers
     let isAlreadySubscribed = elemOf traverse username subscribers
-    unless isAlreadySubscribed <| Lobby.addSubscriber tableName username
-    pass
-
-  withTable tableName \table -> do
-    let subscribers = table ^. #subscribers
-    case Four.mkFromList subscribers of
-      Nothing -> pass
+    let newSubscribers = if isAlreadySubscribed then subscribers else username : subscribers
+    let joinCommand = [JoinLobby tableName username | not isAlreadySubscribed]
+    let msg = SuccessfullySubscribedToTable tableName (table ^. #game)
+    case Four.mkFromList newSubscribers of
+      Nothing -> pure <| Right <| joinCommand <> [SendMsg msg]
       Just users -> do
         gen <- Random.generateStdGen
         let newGame = startGame gen users (table ^. #game)
         Logger.info <| "Starting game with users " <> show subscribers <> " and game is " <> show newGame
-        runEffect <| yield newGame >-> Concurrent.toOutput (table ^. #gameInMailbox)
+        pure <| Right <| joinCommand <> [SendMsg msg, NewGameState tableName newGame]
 
-    pure . Right <| SuccessfullySubscribedToTable tableName (table ^. #game)
-
-getTablesHandler :: ManageLobby m => m (Either Err MsgOut)
+getTablesHandler :: AcquireLobby m => m (Either Err [Command])
 getTablesHandler = do
   lobby <- Lobby.getLobby
-  pure . Right <| TableList (summariseTables lobby)
+  let msgOut = TableList (summariseTables lobby)
+  pure . Right <| [SendMsg msgOut]

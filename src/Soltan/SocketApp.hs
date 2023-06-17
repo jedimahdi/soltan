@@ -28,7 +28,6 @@ data SocketEnv (m :: Type -> Type) = SocketEnv
   { conn :: WS.Connection
   , serverState :: TVar ServerState
   , logAction :: !(LogAction m Logger.Message.Minimal)
-  -- , stateRuntime :: StateRuntime
   }
   deriving stock (Generic)
 

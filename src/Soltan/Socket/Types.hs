@@ -15,10 +15,10 @@ import Pipes (
 import Pipes.Concurrent (Input, Output)
 import Soltan.Data.Has (Has (..))
 import Soltan.Data.Username (Username)
+import Soltan.Hokm (Card, Game, GameErr, Suit)
+import Soltan.Hokm.Types (GameSummary)
 import Text.Show
 import Prelude hiding (Show, show)
-import Soltan.Hokm (Game, GameErr, Card, Suit)
-import Soltan.Hokm.Types (GameSummary)
 
 type TableName = Text
 
@@ -82,7 +82,7 @@ data MsgOut
   = TableList [TableSummary]
   | ErrMsg Err
   | AuthSuccess
-  | NewGameState TableName Game
+  | NewGameSummary TableName Game
   | NewGameStateSummary TableName GameSummary
   | SuccessfullySubscribedToTable TableName Game
   | Noop
@@ -123,3 +123,7 @@ instance Exception TableDoesNotExistInLobby
 type WithServerState env m = (MonadReader env m, Has (TVar ServerState) env, MonadIO m)
 type WithClient env m = (MonadReader env m, Has Client env)
 
+data Command
+  = SendMsg MsgOut
+  | NewGameState TableName Game
+  | JoinLobby TableName Username

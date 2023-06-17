@@ -7,6 +7,27 @@ import Pipes (Consumer, Producer, await, yield)
 import Soltan.Data.Has (Has, grab)
 import Soltan.Socket.Types (Client)
 import Soltan.SocketApp (SocketApp)
+import UnliftIO (MonadUnliftIO, withRunInIO)
+
+class Monad m => WebSocketServer m where
+  type ConnectionId m :: Type
+  runServer :: Int -> (ConnectionId m -> m ()) -> m ()
+
+instance WebSocketServer SocketApp where
+  type ConnectionId SocketApp = WS.Connection
+  runServer = runServerImpl
+
+runServerImpl :: MonadUnliftIO m => Int -> (WS.Connection -> m ()) -> m ()
+runServerImpl port app =
+  withRunInIO \runInIO ->
+    WS.runServer "0.0.0.0" port \pending -> do
+      conn <- WS.acceptRequest pending
+      WS.withPingThread conn 30 pass do
+        runInIO <| app conn
+
+class Monad m => WebSocketMessaging m where
+  msgIn :: ConnectionId m -> m ByteString
+  msgOut :: ConnectionId m -> ByteString -> m ()
 
 class Monad m => WebSocket m where
   receive :: m ByteString

@@ -31,8 +31,8 @@ chooseHokm idx suit (GameChoosingHokm g) = GameInProgress initialInProgress
       , trumpSuit = suit
       , players = newPlayers
       , board = Zero
-      , teamAPoints = 0
-      , teamBPoints = 0
+      , teamAPoints = g ^. #teamAPoints
+      , teamBPoints = g ^. #teamBPoints
       , teamATricks = 0
       , teamBTricks = 0
       }
