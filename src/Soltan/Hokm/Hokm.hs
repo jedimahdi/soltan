@@ -70,7 +70,7 @@ nextStage gen (GameEndOfTrick state@(GameEndOfTrickState{..})) =
                       }
                 else
                   let deck = shuffledDeck gen
-                      newHakem = if hakemTeam == winnerTeam then hakem else nextPlayerIndexTurn hakem
+                      newHakem = if hakemTeam == trickWinnerTeam then hakem else nextPlayerIndexTurn hakem
                       hakemCards = take 5 deck
                       newPlayers = case newHakem of
                         Player1 ->

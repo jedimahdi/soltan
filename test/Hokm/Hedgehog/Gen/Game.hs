@@ -53,6 +53,8 @@ genChoosingHokmGame = do
   p2 <- genPlayer B (getCards Player2)
   p3 <- genPlayer A (getCards Player3)
   p4 <- genPlayer B (getCards Player4)
+  teamAPoints <- Point . fromIntegral <$> Gen.int (Range.constant 0 5)
+  teamBPoints <- Point . fromIntegral <$> Gen.int (Range.constant 0 5)
   let players = Players p1 p2 p3 p4
   let state = ChoosingHokmState{..}
   pure (GameChoosingHokm state, state)
@@ -98,4 +100,3 @@ genInProgressGame_ = do
   let board = fmap (uncurry PlayedCard) <| zip boardCards [Player1, Player2, Player3]
   let turn = fromMaybe Player1 <| fmap nextPlayerIndexTurn <| fmap (view #playerIndex) <| viaNonEmpty last <| board
   genInProgressGame GenerateGameInProgressInfo{..}
-

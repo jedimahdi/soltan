@@ -46,10 +46,7 @@ getLobbyImpl = do
 updateGameImpl :: WithServerState env m => TableName -> Game -> m ()
 updateGameImpl tableName game = do
   serverStateTVar <- grab @(TVar ServerState)
-  serverState <- readTVarIO serverStateTVar
-  case serverState ^? #lobby . ix tableName of
-    Nothing -> pass
-    Just table -> atomically <| modifyTVar serverStateTVar (#lobby . ix tableName . #game .~ game)
+  atomically <| modifyTVar' serverStateTVar (#lobby . ix tableName . #game .~ game)
 
 addSubscriberImpl :: WithServerState env m => TableName -> Username -> m ()
 addSubscriberImpl tableName username = do

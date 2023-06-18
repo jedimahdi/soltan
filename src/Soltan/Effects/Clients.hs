@@ -6,15 +6,29 @@ import Soltan.Data.Username (Username)
 import Soltan.Socket.Types (Client, ServerState)
 import Soltan.SocketApp (SocketApp)
 
-class Monad m => ManageClients m where
+type ManageClients m = (AcquireClients m, UpdateClients m)
+
+class Monad m => AcquireClients m where
+  getClients :: m (Map Username Client)
+
+instance AcquireClients SocketApp where
+  getClients = getClientsImpl
+
+class AcquireClients m => UpdateClients m where
   addClient :: Client -> m ()
   removeClient :: Username -> m ()
 
-type WithServerState env m = (MonadReader env m, Has (TVar ServerState) env, MonadIO m)
-
-instance ManageClients SocketApp where
+instance UpdateClients SocketApp where
   addClient = addClientImpl
   removeClient = removeClientImpl
+
+type WithServerState env m = (MonadReader env m, Has (TVar ServerState) env, MonadIO m)
+
+getClientsImpl :: WithServerState env m => m (Map Username Client)
+getClientsImpl = do
+  serverStateTVar <- grab @(TVar ServerState)
+  serverState <- readTVarIO serverStateTVar
+  pure <| serverState ^. #clients
 
 addClientImpl :: WithServerState env m => Client -> m ()
 addClientImpl client = do

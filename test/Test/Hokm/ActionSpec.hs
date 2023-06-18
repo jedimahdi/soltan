@@ -62,8 +62,8 @@ spec = describe "runAction" do
         lengthOf (#cards . traverse) player === 13
       lengthOf (traverse . #cards . traverse) players === 52
       sortBy rankAndSuitCardOrdering (players ^.. traverse . #cards . traverse) === sortBy rankAndSuitCardOrdering initialDeck
-      newGameState ^. #teamAPoints === 0
-      newGameState ^. #teamBPoints === 0
+      newGameState ^. #teamAPoints === state ^. #teamAPoints
+      newGameState ^. #teamBPoints === state ^. #teamBPoints
       newGameState ^. #teamATricks === 0
       newGameState ^. #teamBTricks === 0
   it "PlayCard Action" do

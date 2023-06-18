@@ -6,6 +6,7 @@ import qualified Pipes.Concurrent
 import Soltan.SocketApp (SocketApp)
 import UnliftIO (MonadUnliftIO, async)
 import qualified UnliftIO
+import qualified UnliftIO.Concurrent as UnliftIO
 
 class Monad m => Concurrent m where
   forkProcess :: m a -> m ()
@@ -13,6 +14,7 @@ class Monad m => Concurrent m where
   toOutput :: Output a -> Consumer' a m ()
   spawn :: Buffer a -> m (Output a, Input a)
   finally :: m a -> m b -> m a
+  threadDelay :: Int -> m ()
 
 instance Concurrent SocketApp where
   forkProcess = void . async
@@ -20,3 +22,4 @@ instance Concurrent SocketApp where
   toOutput = Pipes.Concurrent.toOutput
   spawn = liftIO . Pipes.Concurrent.spawn
   finally = UnliftIO.finally
+  threadDelay = UnliftIO.threadDelay

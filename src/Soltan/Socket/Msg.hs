@@ -4,32 +4,24 @@ module Soltan.Socket.Msg where
 
 import Control.Lens (elemOf, ix, (<>~), (^?))
 import qualified Data.List as List
-import Pipes (Pipe, await, runEffect, yield, (>->))
-import Pipes.Concurrent (Output, send)
 import qualified Soltan.Data.Four as Four
-import Soltan.Data.Has (grab)
 import Soltan.Data.Username (Username)
-import Soltan.Effects.Concurrent (Concurrent)
-import qualified Soltan.Effects.Concurrent as Concurrent
-import Soltan.Effects.Lobby (AcquireLobby, ManageLobby)
+import Soltan.Effects.Lobby (AcquireLobby)
 import qualified Soltan.Effects.Lobby as Lobby
-import Soltan.Effects.LogMessages (HasLog, LogMessages)
+import Soltan.Effects.LogMessages (HasLog)
 import qualified Soltan.Effects.LogMessages as Logger
-import Soltan.Effects.Now (Now)
 import Soltan.Effects.Random (MonadRandom)
 import qualified Soltan.Effects.Random as Random
-import Soltan.Hokm (Game, initialDeck, runAction, validateAction)
+import Soltan.Hokm (Game, runAction, validateAction)
 import Soltan.Hokm.Hokm (startGame)
 import Soltan.Hokm.Types (Action (..), PlayerIndex)
 import Soltan.Hokm.Utils (getPlayerIndexWithUsername)
 import Soltan.Socket.Lobby (summariseTables)
-import Soltan.Socket.Prelude
 import Soltan.Socket.Types (
   Client,
   Command (..),
   Err (..),
   GameMsgIn (..),
-  MsgHandlerConfig (..),
   MsgIn (..),
   MsgOut (..),
   Table (..),

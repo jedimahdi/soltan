@@ -25,14 +25,12 @@ import Soltan.Socket.Types (Client, ServerState)
 import UnliftIO (MonadUnliftIO)
 
 data SocketEnv (m :: Type -> Type) = SocketEnv
-  { conn :: WS.Connection
-  , serverState :: TVar ServerState
+  { serverState :: TVar ServerState
   , logAction :: !(LogAction m Logger.Message.Minimal)
   }
   deriving stock (Generic)
 
 instance Has (TVar ServerState) (SocketEnv m) where obtain = view #serverState
-instance Has WS.Connection (SocketEnv m) where obtain = view #conn
 instance HasLog (SocketEnv m) Logger.Message.Minimal m where
   getLogAction :: SocketEnv m -> LogAction m Logger.Message.Minimal
   getLogAction = logAction
@@ -42,8 +40,8 @@ instance HasLog (SocketEnv m) Logger.Message.Minimal m where
   setLogAction newAction env = env{logAction = newAction}
   {-# INLINE setLogAction #-}
 
-mkEnv :: MonadIO m => WS.Connection -> TVar ServerState -> SocketEnv m
-mkEnv conn s = SocketEnv conn s (Logger.Message.Scoped WebSocket >$< logScopedMessageToStdStreams)
+mkEnv :: MonadIO m => TVar ServerState -> SocketEnv m
+mkEnv s = SocketEnv s (Logger.Message.Scoped WebSocket >$< logScopedMessageToStdStreams)
 
 newtype SocketApp a = SocketApp
   { unApp :: ReaderT (SocketEnv SocketApp) IO a

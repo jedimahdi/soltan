@@ -8,8 +8,16 @@ import Pipes (Consumer, Effect, Pipe, await, runEffect, yield, (>->))
 import Pipes.Concurrent (fromInput, toOutput)
 import Soltan.Data.Has (grab)
 import Soltan.Data.Username (Username)
-import Soltan.Effects.LogMessages (LogMessages)
+import Soltan.Effects.Clients (AcquireClients, ManageClients)
+import qualified Soltan.Effects.Clients as Clients
+import Soltan.Effects.Concurrent (Concurrent)
+import qualified Soltan.Effects.Concurrent as Concurrent
+import Soltan.Effects.Lobby (AcquireLobby, ManageLobby)
+import qualified Soltan.Effects.Lobby as Lobby
+import Soltan.Effects.LogMessages (HasLog, LogMessages)
 import qualified Soltan.Effects.LogMessages as Logger
+import Soltan.Effects.Random (MonadRandom)
+import qualified Soltan.Effects.Random as Random
 import Soltan.Hokm (Action (..), runAction)
 import Soltan.Hokm.Hokm (nextStage)
 import Soltan.Hokm.Types (Game)
@@ -17,64 +25,62 @@ import Soltan.Hokm.Utils (isEndOfTrick, mkGameSummary)
 import Soltan.Socket.Types (Client (..), MsgOut (..), ServerState (..), Table (..), TableName, WithServerState)
 import System.Random (StdGen, getStdGen)
 import UnliftIO (MonadUnliftIO, async)
-import UnliftIO.Concurrent (threadDelay)
 
-setupTablePipeline :: forall m. (MonadUnliftIO m) => TVar ServerState -> TableName -> Table -> m ()
-setupTablePipeline s tableName Table{..} = do
-  print <| "Game pipeline running for " <> tableName
-  void <| async <| infinitely <| runEffect <| pipeline
+setupTablePipeline ::
+  forall m.
+  (Concurrent m, ManageLobby m, AcquireClients m, MonadRandom m, HasLog m) =>
+  TableName ->
+  Table ->
+  m ()
+setupTablePipeline tableName Table{..} = do
+  Concurrent.forkProcess <| infinitely <| runEffect <| pipeline
  where
   pipeline :: Effect m ()
   pipeline =
-    fromInput gameOutMailbox
+    Concurrent.fromInput gameOutMailbox
       >-> logPipe
-      >-> broadcast s tableName
-      >-> updateTable s tableName
-      >-> logPipe
-      >-> nextRound s tableName
+      >-> broadcast tableName
+      >-> updateTable tableName
+      -- >-> logPipe
+      >-> nextRound tableName
 
-nextRound :: (MonadIO m) => TVar ServerState -> TableName -> Consumer Game m ()
-nextRound s tableName = do
+nextRound :: (Concurrent m, AcquireLobby m, MonadRandom m) => TableName -> Consumer Game m ()
+nextRound tableName = do
   game <- await
   when (isEndOfTrick game) do
-    threadDelay 1_000_000
-    withTable s tableName pass \table -> do
-      gen <- getStdGen
+    lift <| Concurrent.threadDelay 1_000_000
+    lift <| Lobby.withTable tableName pass \table -> do
+      gen <- Random.generateStdGen
       let newGame = nextStage gen game
-      runEffect $ yield newGame >-> toOutput (table ^. #gameInMailbox)
+      runEffect $ yield newGame >-> Concurrent.toOutput (table ^. #gameInMailbox)
 
-logPipe :: MonadIO m => Show a => Pipe a a m ()
+logPipe :: HasLog m => Show a => Pipe a a m ()
 logPipe = do
   a <- await
-  liftIO <| putStrLn <| "Logging from logPipe " <> show a
+  lift <| Logger.debug <| "Logging from logPipe " <> show a
   yield a
 
-broadcast :: (MonadUnliftIO m) => TVar ServerState -> TableName -> Pipe Game Game m ()
-broadcast s tableName = do
+broadcast :: (Concurrent m, AcquireLobby m, AcquireClients m) => TableName -> Pipe Game Game m ()
+broadcast tableName = do
   g <- await
-  ServerState{..} <- readTVarIO s
-  case lobby ^? ix tableName of
-    Nothing -> pass
-    Just Table{..} -> do
-      let cs = mapMaybe (\username -> clients ^? ix username) subscribers
-      void . lift . async <| mapM_ (informSubscriber tableName g) cs
-      yield g
+  lift <| Lobby.withTable tableName pass \table -> do
+    clients <- Clients.getClients
+    let cs = mapMaybe (\username -> clients ^? ix username) (table ^. #subscribers)
+    Concurrent.forkProcess <| mapM_ (informSubscriber tableName g) cs
+  yield g
 
-informSubscriber :: MonadIO m => TableName -> Game -> Client -> m ()
+informSubscriber :: Concurrent m => TableName -> Game -> Client -> m ()
 informSubscriber tableName game Client{..} = do
   case mkGameSummary username game of
     Nothing -> pass
     Just gameSummary ->
-      runEffect <| yield (NewGameStateSummary tableName gameSummary) >-> toOutput outgoingMailbox
+      runEffect <| yield (NewGameStateSummary tableName gameSummary) >-> Concurrent.toOutput outgoingMailbox
 
-updateTable :: MonadIO m => TVar ServerState -> TableName -> Pipe Game Game m ()
-updateTable s tableName = do
+updateTable :: ManageLobby m => TableName -> Pipe Game Game m ()
+updateTable tableName = do
   game <- await
-  atomically <| updateTableSTM s tableName game
+  lift <| Lobby.updateGame tableName game
   yield game
-
-updateTableSTM :: TVar ServerState -> TableName -> Game -> STM ()
-updateTableSTM serverStateTVar tableName game = modifyTVar' serverStateTVar (#lobby . ix tableName . #game .~ game)
 
 withTable :: MonadIO m => TVar ServerState -> TableName -> m r -> (Table -> m r) -> m r
 withTable s tableName onFail app = do

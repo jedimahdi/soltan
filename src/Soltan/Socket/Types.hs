@@ -82,10 +82,8 @@ data MsgOut
   = TableList [TableSummary]
   | ErrMsg Err
   | AuthSuccess
-  | NewGameSummary TableName Game
   | NewGameStateSummary TableName GameSummary
   | SuccessfullySubscribedToTable TableName Game
-  | Noop
   deriving stock (Generic, Show)
   deriving anyclass (ToJSON)
 

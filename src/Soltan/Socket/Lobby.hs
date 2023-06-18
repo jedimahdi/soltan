@@ -2,7 +2,7 @@ module Soltan.Socket.Lobby where
 
 import Control.Lens (ito, itraversed, lengthOf, to, traversed, (^..), (^@..))
 import Pipes.Concurrent (newest, spawn)
-import Soltan.Socket.Types (Lobby (..), Table (..), TableName, TableSummary (..))
+import Soltan.Socket.Types (Lobby, Table (..), TableName, TableSummary (..))
 import Soltan.Hokm.Types (Game(..))
 
 initialLobby :: MonadIO m => m Lobby

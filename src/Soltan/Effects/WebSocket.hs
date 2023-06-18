@@ -26,37 +26,29 @@ runServerImpl port app =
         runInIO <| app conn
 
 class Monad m => WebSocketMessaging m where
-  msgIn :: ConnectionId m -> m ByteString
-  msgOut :: ConnectionId m -> ByteString -> m ()
+  receive :: ConnectionId m -> m ByteString
+  send :: ConnectionId m -> ByteString -> m ()
 
-class Monad m => WebSocket m where
-  receive :: m ByteString
-  send :: ByteString -> m ()
-
-instance WebSocket SocketApp where
+instance WebSocketMessaging SocketApp where
   receive = receiveImpl
   send = sendImpl
 
-type WithWebSocket r m = (MonadIO m, MonadReader r m, Has WS.Connection r)
+type WebSocket m = (WebSocketServer m, WebSocketMessaging m)
 
-receiveImpl :: WithWebSocket r m => m ByteString
-receiveImpl = do
-  conn <- grab @WS.Connection
-  liftIO <| WS.receiveData conn
+receiveImpl :: MonadIO m => WS.Connection -> m ByteString
+receiveImpl conn = liftIO <| WS.receiveData conn
 
-sendImpl :: WithWebSocket r m => ByteString -> m ()
-sendImpl msg = do
-  conn <- grab @WS.Connection
-  liftIO <| WS.sendTextData conn msg
+sendImpl :: MonadIO m => WS.Connection -> ByteString -> m ()
+sendImpl conn msg = liftIO <| WS.sendTextData conn msg
 
-sendJSON :: forall a m. (WebSocket m, ToJSON a) => a -> m ()
-sendJSON msg = send (BS.toStrict . Aeson.encode <| msg)
+sendJSON :: forall a m. (WebSocketMessaging m, ToJSON a) => ConnectionId m -> a -> m ()
+sendJSON conn msg = send conn (BS.toStrict . Aeson.encode <| msg)
 
-receiveJSON :: forall a m. (WebSocket m, FromJSON a) => m (Maybe a)
-receiveJSON = Aeson.decode . BS.fromStrict <$> receive
+receiveJSON :: forall a m. (WebSocketMessaging m, FromJSON a) => ConnectionId m -> m (Maybe a)
+receiveJSON conn = Aeson.decode . BS.fromStrict <$> receive conn
 
-producer :: forall a m. (WebSocket m, FromJSON a) => Producer a m ()
-producer = void . infinitely <| whenJustM (lift receiveJSON) yield
+producer :: forall a m. (WebSocketMessaging m, FromJSON a) => ConnectionId m -> Producer a m ()
+producer conn = void . infinitely <| whenJustM (lift (receiveJSON conn)) yield
 
-consumer :: forall a m. (WebSocket m, ToJSON a) => Consumer a m ()
-consumer = void . infinitely <| await >>= lift . sendJSON
+consumer :: forall a m. (WebSocketMessaging m, ToJSON a) => ConnectionId m -> Consumer a m ()
+consumer conn = void . infinitely <| await >>= lift . sendJSON conn
