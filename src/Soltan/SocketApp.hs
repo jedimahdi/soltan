@@ -40,8 +40,8 @@ instance HasLog (SocketEnv m) Logger.Message.Minimal m where
   setLogAction newAction env = env{logAction = newAction}
   {-# INLINE setLogAction #-}
 
-mkEnv :: MonadIO m => TVar ServerState -> SocketEnv m
-mkEnv s = SocketEnv s (Logger.Message.Scoped WebSocket >$< logScopedMessageToStdStreams)
+mkEnv :: TVar ServerState -> LogAction m Logger.Message.Minimal -> SocketEnv m
+mkEnv = SocketEnv
 
 newtype SocketApp a = SocketApp
   { unApp :: ReaderT (SocketEnv SocketApp) IO a

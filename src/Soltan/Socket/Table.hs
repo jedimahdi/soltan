@@ -41,17 +41,21 @@ setupTablePipeline tableName Table{..} = do
       >-> logPipe
       >-> broadcast tableName
       >-> updateTable tableName
-      -- >-> logPipe
       >-> nextRound tableName
 
-nextRound :: (Concurrent m, AcquireLobby m, MonadRandom m) => TableName -> Consumer Game m ()
+nextRound :: (Concurrent m, AcquireLobby m, MonadRandom m, HasLog m) => TableName -> Consumer Game m ()
 nextRound tableName = do
   game <- await
   when (isEndOfTrick game) do
+    lift <| Logger.info "Is end of trick ======"
     lift <| Concurrent.threadDelay 1_000_000
-    lift <| Lobby.withTable tableName pass \table -> do
+    lift <| Logger.info "Is end of trick ====== After delay"
+    lift <| Lobby.withTable tableName (Logger.warning "Did not find the table") \table -> do
+      Logger.info <| "Found the table" <> show table
       gen <- Random.generateStdGen
+      Logger.info <| "Random " <> show gen
       let newGame = nextStage gen game
+      Logger.info <| "New Stage Game: " <> show newGame
       runEffect $ yield newGame >-> Concurrent.toOutput (table ^. #gameInMailbox)
 
 logPipe :: HasLog m => Show a => Pipe a a m ()

@@ -1,9 +1,6 @@
-{-# HLINT ignore "Use newtype instead of data" #-}
-{-# OPTIONS_GHC -Wno-redundant-constraints #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-
 module Soltan.Socket where
 
+import Colog (usingLoggerT)
 import Data.Map as Map
 import Pipes (Consumer, Pipe, Producer, Producer', await, for, runEffect, yield, (>->))
 import qualified Pipes.Aeson
@@ -23,7 +20,9 @@ import Soltan.Effects.Random (MonadRandom)
 import Soltan.Effects.WebSocket (ConnectionId, WebSocket, WebSocketMessaging)
 import qualified Soltan.Effects.WebSocket as WebSocket
 import Soltan.Hokm.Types (Game)
-import Soltan.Socket.Clients (LoginRequest (..), addClient, authenticateClient)
+import Soltan.Logger.Message (Scope (..))
+import qualified Soltan.Logger.Message as Logger.Message
+import Soltan.Socket.Clients (authenticateClient)
 import Soltan.Socket.Lobby (initialLobby)
 import Soltan.Socket.Msg (msgHandler)
 import Soltan.Socket.Table (setupTablePipeline)
@@ -39,7 +38,7 @@ import Soltan.Socket.Types (
   TableDoesNotExistInLobby (..),
   TableName,
  )
-import Soltan.SocketApp (mkEnv, runSocketApp)
+import Soltan.SocketApp (SocketApp, logScopedMessageToStdStreams, mkEnv, runSocketApp)
 
 initialServerState :: Lobby -> ServerState
 initialServerState lobby = ServerState{clients = mempty, lobby = lobby}
@@ -48,11 +47,13 @@ runSocketServer :: Int -> IO ()
 runSocketServer port = do
   lobby <- initialLobby
   serverStateTVar <- newTVarIO (initialServerState lobby)
-  let env = mkEnv serverStateTVar
+  let logAction = Logger.Message.Scoped WebSocket >$< logScopedMessageToStdStreams
+  let env = mkEnv serverStateTVar logAction
   runSocketApp env (run port)
 
 run :: (WebSocket m, HasLog m, ManageLobby m, ManageClients m, Concurrent m, MonadRandom m) => Int -> m ()
 run port = do
+  Logger.info <| "Websocket server on ws://localhost:" <> show port
   lobby <- Lobby.getLobby
   traverse_
     (uncurry setupTablePipeline)
@@ -102,8 +103,8 @@ msgInsWorker readMsgInSource writeMsgOutSource client = void . infinitely . runE
       >-> runCommands writeMsgOutSource
       >-> Concurrent.toOutput writeMsgOutSource
 
-runCommands :: forall m. (Concurrent m, ManageLobby m) => Output MsgOut -> Pipe (Either Err [Command]) MsgOut m ()
-runCommands writeMsgOutSource = await >>= either (yield . ErrMsg) (traverse_ interpretCommand)
+runCommands :: forall m. (Concurrent m, ManageLobby m) => Output MsgOut -> Pipe [Command] MsgOut m ()
+runCommands writeMsgOutSource = await >>= traverse_ interpretCommand
  where
   interpretCommand :: Command -> Producer' MsgOut m ()
   interpretCommand (SendMsg msgOut) = yield msgOut

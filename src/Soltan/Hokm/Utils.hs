@@ -44,6 +44,29 @@ mkPlayers (u1, c1) (u2, c2) (u3, c3) (u4, c4) =
             }
         )
     }
+
+mkChooseHokmState :: RandomGen g => g -> PlayerIndex -> Point -> Point -> Username -> Username -> Username -> Username -> ChoosingHokmState
+mkChooseHokmState gen hakem teamAPoints teamBPoints u1 u2 u3 u4 =
+  ChoosingHokmState
+    { hakem
+    , remainingDeck = drop 5 deck
+    , players
+    , teamAPoints
+    , teamBPoints
+    }
+ where
+  deck = shuffledDeck gen
+  hakemCards = take 5 deck
+  players = case hakem of
+    Player1 ->
+      mkPlayers (u1, hakemCards) (u2, []) (u3, []) (u4, [])
+    Player2 ->
+      mkPlayers (u1, []) (u2, hakemCards) (u3, []) (u4, [])
+    Player3 ->
+      mkPlayers (u1, []) (u2, []) (u3, hakemCards) (u4, [])
+    Player4 ->
+      mkPlayers (u1, []) (u2, []) (u3, []) (u4, hakemCards)
+
 haveCard :: Game -> PlayerIndex -> Card -> Bool
 haveCard (GameInProgress g) idx card
   | elemOf (#players . playerL idx . #cards . traversed) card g = True

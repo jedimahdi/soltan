@@ -26,8 +26,7 @@ data Table = Table
   { subscribers :: [Username]
   , gameOutMailbox :: Input Game
   , gameInMailbox :: Output Game
-  , -- , waitlist :: [Username]
-    game :: Game
+  , game :: Game
   }
   deriving stock (Generic)
 
@@ -84,7 +83,7 @@ data MsgOut
   | AuthSuccess
   | NewGameStateSummary TableName GameSummary
   | SuccessfullySubscribedToTable TableName Game
-  deriving stock (Generic, Show)
+  deriving stock (Generic, Show, Eq)
   deriving anyclass (ToJSON)
 
 data Err
@@ -92,7 +91,7 @@ data Err
   | TableDoesNotExist TableName
   | GameErr GameErr
   | PlayerNotInTheGame
-  deriving stock (Generic, Show)
+  deriving stock (Generic, Show, Eq)
   deriving anyclass (ToJSON)
 
 data MsgIn
@@ -114,7 +113,7 @@ data MsgHandlerConfig = MsgHandlerConfig
 
 newtype TableDoesNotExistInLobby
   = TableDoesNotExistInLobby Text
-  deriving (Show)
+  deriving stock (Show)
 
 instance Exception TableDoesNotExistInLobby
 
@@ -125,3 +124,4 @@ data Command
   = SendMsg MsgOut
   | NewGameState TableName Game
   | JoinLobby TableName Username
+  deriving stock (Show, Eq)
