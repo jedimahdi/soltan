@@ -99,7 +99,7 @@ msgInsWorker readMsgInSource writeMsgOutSource client = void . infinitely . runE
  where
   pipeline =
     Concurrent.fromInput readMsgInSource
-      >-> Pipes.mapM (msgHandler client)
+      >-> Pipes.mapM (msgHandler (client ^. #username))
       >-> runCommands writeMsgOutSource
       >-> Concurrent.toOutput writeMsgOutSource
 

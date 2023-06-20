@@ -13,8 +13,11 @@ instance Now IO where
 instance MonadIO m => Now (StateT s m) where
   now = liftIO Chronos.now
 
-instance MonadIO m => Now (ReaderT s m) where
+instance MonadIO m => Now (ReaderT r m) where
   now = liftIO Chronos.now
+
+instance Now m => Now (ExceptT e m) where
+  now = lift now
 
 instance Now SocketApp where
   now = liftIO Chronos.now

@@ -15,5 +15,8 @@ instance MonadRandom IO where
 instance MonadIO m => MonadRandom (StateT s m) where
   generateStdGen = getStdGen
 
-instance MonadIO m => MonadRandom (ReaderT s m) where
+instance MonadIO m => MonadRandom (ReaderT r m) where
   generateStdGen = getStdGen
+
+instance MonadRandom m => MonadRandom (ExceptT e m) where
+  generateStdGen = lift generateStdGen

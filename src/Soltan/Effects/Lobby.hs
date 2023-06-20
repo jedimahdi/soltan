@@ -25,6 +25,10 @@ instance AcquireLobby SocketApp where
   getTable = getTableImpl
   getLobby = getLobbyImpl
 
+instance AcquireLobby m => AcquireLobby (ExceptT e m) where
+  getTable = lift . getTable
+  getLobby = lift getLobby
+
 instance UpdateLobby SocketApp where
   updateGame = updateGameImpl
   addSubscriber = addSubscriberImpl

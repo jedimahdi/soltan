@@ -2,7 +2,8 @@
 
 module Soltan.Socket.Msg where
 
-import Control.Lens (elemOf, ix, (<>~), (^?))
+import Control.Lens (elemOf, ix, lengthOf, (<>~), (^?))
+import Control.Monad.Trans.Except (except, throwE)
 import qualified Data.List as List
 import qualified Soltan.Data.Four as Four
 import Soltan.Data.Username (Username)
@@ -29,53 +30,56 @@ import Soltan.Socket.Types (
   TableName,
  )
 
-msgHandler :: (AcquireLobby m, HasLog m, MonadRandom m) => Client -> MsgIn -> m [Command]
-msgHandler _ GetTables = getTablesHandler
-msgHandler client (SubscribeToTable tableName) = subscribeToTableHandler tableName client
-msgHandler client (GameMsgIn msg) = gameMsgHandler msg client
+msgHandler :: (AcquireLobby m, HasLog m, MonadRandom m) => Username -> MsgIn -> m [Command]
+msgHandler username msg =
+  case msg of
+    GetTables -> getTablesHandler
+    SubscribeToTable tableName -> subscribeToTableHandler tableName username
+    GameMsgIn gameMsg -> gameMsgHandler gameMsg username
+    |> runExceptT
+    |> fmap (either (List.singleton . SendMsg . ErrMsg) identity)
 
-withTable :: AcquireLobby m => TableName -> (Table -> m [Command]) -> m [Command]
-withTable tableName = Lobby.withTable tableName (pure [SendMsg . ErrMsg <| TableDoesNotExist tableName])
+getTable :: AcquireLobby m => TableName -> ExceptT Err m Table
+getTable tableName = ExceptT <| fmap (maybeToRight (TableDoesNotExist tableName)) <| Lobby.getTable tableName
 
-withPlayerIndex :: Applicative m => Username -> Game -> (PlayerIndex -> m [Command]) -> m [Command]
-withPlayerIndex username game f = maybe (pure [SendMsg . ErrMsg <| PlayerNotInTheGame]) f (getPlayerIndexWithUsername username game)
+getPlayerIndex :: Monad m => Username -> Game -> ExceptT Err m PlayerIndex
+getPlayerIndex username game = maybe (throwE PlayerNotInTheGame) pure (getPlayerIndexWithUsername username game)
 
-runPlayerAction :: AcquireLobby m => TableName -> Username -> (PlayerIndex -> Action) -> m [Command]
-runPlayerAction tableName username mkAction =
-  withTable tableName \table -> do
-    let game = table ^. #game
-    withPlayerIndex username game \playerIndex ->
-      runAction (mkAction playerIndex) game |> either (SendMsg . ErrMsg . GameErr) (NewGameState tableName) |> List.singleton |> pure
+runPlayerAction :: AcquireLobby m => TableName -> Username -> (PlayerIndex -> Action) -> ExceptT Err m [Command]
+runPlayerAction tableName username mkAction = do
+  table <- getTable tableName
+  let game = table ^. #game
+  playerIndex <- getPlayerIndex username game
+  hoistEither <| bimap GameErr (List.singleton . NewGameState tableName) <| runAction (mkAction playerIndex) game
 
-gameMsgHandler :: (AcquireLobby m, HasLog m) => GameMsgIn -> Client -> m [Command]
-gameMsgHandler msg client = do
+gameMsgHandler :: (AcquireLobby m, HasLog m) => GameMsgIn -> Username -> ExceptT Err m [Command]
+gameMsgHandler msg username = do
   Logger.debug <| "Game Msg In handler for " <> show msg
   case msg of
     PlayCardMsg tableName card ->
       runPlayerAction tableName username (`PlayCard` card)
     ChooseHokmMsg tableName suit ->
       runPlayerAction tableName username (`ChooseHokm` suit)
- where
-  username = client ^. #username
 
-subscribeToTableHandler :: (AcquireLobby m, HasLog m, MonadRandom m) => TableName -> Client -> m [Command]
-subscribeToTableHandler tableName client = do
-  withTable tableName \table -> do
-    let username = client ^. #username
-    let subscribers = table ^. #subscribers
-    let isAlreadySubscribed = elemOf traverse username subscribers
-    let newSubscribers = if isAlreadySubscribed then subscribers else username : subscribers
-    let joinCommand = [JoinLobby tableName username | not isAlreadySubscribed]
-    let msg = SuccessfullySubscribedToTable tableName (table ^. #game)
-    case Four.mkFromList newSubscribers of
-      Nothing -> pure <| joinCommand <> [SendMsg msg]
-      Just users -> do
-        gen <- Random.generateStdGen
-        let newGame = startGame gen users (table ^. #game)
-        Logger.info <| "Starting game with users " <> show subscribers <> " and game is " <> show newGame
-        pure <| joinCommand <> [SendMsg msg, NewGameState tableName newGame]
+subscribeToTableHandler :: (AcquireLobby m, HasLog m, MonadRandom m) => TableName -> Username -> ExceptT Err m [Command]
+subscribeToTableHandler tableName username = do
+  table <- getTable tableName
+  let subscribers = table ^. #subscribers
+      isAlreadySubscribed = elemOf traverse username subscribers
+      isAlreadyFull = lengthOf traverse subscribers >= 4
+      newSubscribers = if isAlreadySubscribed then subscribers else username : subscribers
+      joinCommand = [JoinLobby tableName username | not isAlreadySubscribed]
+      msg = SuccessfullySubscribedToTable tableName (table ^. #game)
+  when isAlreadyFull <| throwE (TableIsFull tableName)
+  case Four.mkFromList newSubscribers of
+    Nothing -> pure <| joinCommand <> [SendMsg msg]
+    Just users -> do
+      gen <- Random.generateStdGen
+      let newGame = startGame gen users (table ^. #game)
+      Logger.info <| "Starting game with users " <> show subscribers <> " and game is " <> show newGame
+      pure <| joinCommand <> [SendMsg msg, NewGameState tableName newGame]
 
-getTablesHandler :: AcquireLobby m => m [Command]
+getTablesHandler :: AcquireLobby m => ExceptT Err m [Command]
 getTablesHandler = do
   lobby <- Lobby.getLobby
   let msgOut = TableList (summariseTables lobby)

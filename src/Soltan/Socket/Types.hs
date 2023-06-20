@@ -91,6 +91,7 @@ data Err
   | TableDoesNotExist TableName
   | GameErr GameErr
   | PlayerNotInTheGame
+  | TableIsFull TableName
   deriving stock (Generic, Show, Eq)
   deriving anyclass (ToJSON)
 

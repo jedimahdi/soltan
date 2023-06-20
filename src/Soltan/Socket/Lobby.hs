@@ -23,7 +23,7 @@ initialLobby = do
 mkTable :: Input Game -> Output Game -> [Username] -> Table
 mkTable input output users =
   Table
-    { subscribers = []
+    { subscribers = users
     , gameInMailbox = output
     , gameOutMailbox = input
     , game = GameBeforeStart
