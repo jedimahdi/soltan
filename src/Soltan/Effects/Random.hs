@@ -2,14 +2,14 @@ module Soltan.Effects.Random where
 
 import Pipes (Proxy)
 import Soltan.SocketApp (SocketApp)
-import System.Random (StdGen, getStdGen)
+import System.Random (StdGen, getStdGen, newStdGen)
 import Prelude hiding (Proxy)
 
 class Monad m => MonadRandom m where
   generateStdGen :: m StdGen
 
 instance MonadRandom IO where
-  generateStdGen = getStdGen
+  generateStdGen = newStdGen
 
 instance MonadRandom m => MonadRandom (StateT s m) where
   generateStdGen = lift generateStdGen

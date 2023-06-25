@@ -7,7 +7,7 @@ import qualified Soltan.Data.Four as Four
 import Soltan.Hokm.Hokm (nextStage)
 import Soltan.Hokm.Types (Card (..), Game (..), GameEndOfTrickState (..), PlayedCard (..), PlayerIndex (..), Rank (..), Suit (..), Team (..), _GameChoosingHokm, _GameEnd, _GameInProgress)
 import Soltan.Hokm.Utils
-import System.Random (getStdGen)
+import System.Random (getStdGen, newStdGen)
 import Test.Hspec (Spec, describe, it, shouldBe)
 import Prelude hiding (state)
 
@@ -30,25 +30,31 @@ spec = describe "nextStage" do
                 (PlayedCard (Card Seven Diamonds) Player1)
           }
   it "should go end when some team reaches 7 points" do
-    gen <- getStdGen
+    gen <- newStdGen
     let state = initialState Player1 0 6 0 6
     let newGame = nextStage gen (GameEndOfTrick state)
     newGame ^? _GameEnd . #winnerTeam `shouldBe` Just B
 
   it "should go next round when a team tricks reaches 7" do
-    gen <- getStdGen
+    gen <- newStdGen
     let state = initialState Player1 0 0 0 6
     let newGame = nextStage gen (GameEndOfTrick state)
     newGame ^? _GameChoosingHokm . #hakem `shouldBe` Just Player2
 
   it "hakem should not change when hakem team wins" do
-    gen <- getStdGen
+    gen <- newStdGen
     let state = initialState Player4 0 0 0 6
     let newGame = nextStage gen (GameEndOfTrick state)
     newGame ^? _GameChoosingHokm . #hakem `shouldBe` Just Player4
 
   it "should go next trick when game and round is not ended" do
-    gen <- getStdGen
+    gen <- newStdGen
     let state = initialState Player1 0 0 0 0
+    let newGame = nextStage gen (GameEndOfTrick state)
+    newGame ^? _GameInProgress . #board `shouldBe` Just AtMostThree.Zero
+
+  it "when point is 6" do
+    gen <- newStdGen
+    let state = initialState Player1 0 6 0 0
     let newGame = nextStage gen (GameEndOfTrick state)
     newGame ^? _GameInProgress . #board `shouldBe` Just AtMostThree.Zero

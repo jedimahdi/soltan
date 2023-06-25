@@ -23,4 +23,5 @@ calculateNewPoints hakemTeam teamATricks teamBTricks teamAPoints teamBPoints
   | teamATricks == 7 = (teamAPoints + 1, teamBPoints)
   | teamBTricks == 7 && teamATricks == 0 && hakemTeam == A = (teamAPoints, teamBPoints + 3)
   | teamBTricks == 7 && teamATricks == 0 = (teamAPoints, teamBPoints + 2)
-  | otherwise = (teamAPoints, teamBPoints + 1)
+  | teamBTricks == 7 = (teamAPoints, teamBPoints + 1)
+  | otherwise = (teamAPoints, teamBPoints)

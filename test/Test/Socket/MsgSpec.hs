@@ -72,4 +72,4 @@ spec = do
       it "should be able to join an empty table" do
         lobby <- lobbyFixture
         Right cmds <- runTestApp lobby (runExceptT (subscribeToTableHandler "A" "u5"))
-        cmds `shouldBe` [JoinLobby "A" "u5", SendMsg (SuccessfullySubscribedToTable "A" GameBeforeStart)]
+        cmds `shouldBe` [JoinLobby "A" "u5", SendMsg (SuccessfullySubscribedToTable "A" (TableSummary "A" 0))]
