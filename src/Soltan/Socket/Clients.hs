@@ -1,21 +1,18 @@
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-
-{-# HLINT ignore "Use newtype instead of data" #-}
 module Soltan.Socket.Clients where
 
-import Control.Concurrent.STM (swapTVar)
 import Soltan.Data.Username (Username)
-import Soltan.Effects.WebSocket (WebSocket, WebSocketMessaging, ConnectionId)
+import Soltan.Effects.WebSocket (ConnectionId, WebSocket, WebSocketMessaging)
 import qualified Soltan.Effects.WebSocket as WebSocket
-import Soltan.Socket.Types (Client (..), Err (AuthFailed), ServerState (..), WithServerState)
-import Control.Lens (over, at, (?~))
-import Soltan.Data.Has (grab)
+import Soltan.Socket.Types (Err (AuthFailed), MsgIn (..))
+import Soltan.Effects.LogMessages (HasLog)
 
-data LoginRequest = LoginRequest
-  { username :: Username
-  }
-  deriving stock (Generic)
-  deriving anyclass (FromJSON)
-
-authenticateClient :: WebSocketMessaging m => ConnectionId m -> m (Either Err Username)
-authenticateClient conn = WebSocket.receiveJSON @LoginRequest conn <&> maybe (Left AuthFailed) (Right . view #username)
+authenticateClient :: forall m. (WebSocketMessaging m, HasLog m) => ConnectionId m -> m (Either Err Username)
+authenticateClient conn = go 3
+ where
+  go :: Int -> m (Either Err Username)
+  go 0 = pure <| Left AuthFailed
+  go n = do
+    msg <- WebSocket.receiveJSON @MsgIn conn
+    case msg of
+      Just (Login username) -> pure <| Right username
+      _ -> go (n - 1)

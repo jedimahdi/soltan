@@ -18,11 +18,8 @@ import Soltan.Effects.LogMessages (HasLog, LogMessages)
 import qualified Soltan.Effects.LogMessages as Logger
 import Soltan.Effects.Random (MonadRandom)
 import qualified Soltan.Effects.Random as Random
-import Soltan.Hokm (Action (..), runAction)
-import Soltan.Hokm.Hokm (nextStage)
-import Soltan.Hokm.Types (Game)
-import Soltan.Hokm.Utils (isEndOfTrick, mkGameSummary)
-import Soltan.Socket.Types (Client (..), MsgOut (..), ServerState (..), Table (..), TableName, WithServerState)
+import Soltan.Hokm (Action (..), Game, getPlayerIndexWithUsername, isEndOfTrick, mkGameSummary, nextStage, runAction)
+import Soltan.Socket.Types (Client (..), MsgOut (..), ServerState (..), Table (..), TableName)
 import System.Random (StdGen, getStdGen)
 import UnliftIO (MonadUnliftIO, async)
 
@@ -47,9 +44,9 @@ nextRound :: (Concurrent m, AcquireLobby m, MonadRandom m, HasLog m) => TableNam
 nextRound tableName = do
   game <- await
   when (isEndOfTrick game) do
-    lift <| Logger.info "Is end of trick ======"
+    Logger.info "Is end of trick ======"
     lift <| Concurrent.threadDelay 1_000_000
-    lift <| Logger.info "Is end of trick ====== After delay"
+    Logger.info "Is end of trick ====== After delay"
     lift <| Lobby.withTable tableName (Logger.warning "Did not find the table") \table -> do
       Logger.info <| "Found the table" <> show table
       gen <- Random.generateStdGen
@@ -61,7 +58,7 @@ nextRound tableName = do
 logPipe :: HasLog m => Show a => Pipe a a m ()
 logPipe = do
   a <- await
-  lift <| Logger.debug <| "Logging from logPipe " <> show a
+  Logger.debug <| "Logging from logPipe " <> show a
   yield a
 
 broadcast :: (Concurrent m, AcquireLobby m, AcquireClients m) => TableName -> Pipe Game Game m ()
@@ -75,15 +72,15 @@ broadcast tableName = do
 
 informSubscriber :: Concurrent m => TableName -> Game -> Client -> m ()
 informSubscriber tableName game Client{..} = do
-  case mkGameSummary username game of
+  case getPlayerIndexWithUsername username game of
     Nothing -> pass
-    Just gameSummary ->
-      runEffect <| yield (NewGameStateSummary tableName gameSummary) >-> Concurrent.toOutput outgoingMailbox
+    Just playerIndex ->
+      runEffect <| yield (NewGameStateSummary tableName (mkGameSummary playerIndex game)) >-> Concurrent.toOutput outgoingMailbox
 
 updateTable :: ManageLobby m => TableName -> Pipe Game Game m ()
 updateTable tableName = do
   game <- await
-  lift <| Lobby.updateGame tableName game
+  Lobby.updateGame tableName game
   yield game
 
 withTable :: MonadIO m => TVar ServerState -> TableName -> m r -> (Table -> m r) -> m r

@@ -12,6 +12,9 @@ import Soltan.Hokm.Types hiding (Three, Two)
 import System.Random (Random (randomR), RandomGen)
 import Prelude hiding (head, tail)
 
+initialGame :: Game
+initialGame = GameBeforeStart
+
 mkPlayers :: (Username, [Card]) -> (Username, [Card]) -> (Username, [Card]) -> (Username, [Card]) -> Players
 mkPlayers (u1, c1) (u2, c2) (u3, c3) (u4, c4) =
   Players
@@ -139,105 +142,73 @@ mkPlayersSummary (Players p1 p2 p3 p4) =
   , PlayerSummary (p4 ^. #playerName) (p4 ^. #team) Player4
   ]
 
-mkGameSummary :: Username -> Game -> Maybe GameSummary
-mkGameSummary _ GameBeforeStart =
-  pure
-    GameSummary
-      { status = SummaryNotStarted
-      , cards = []
-      , players = []
-      , hakem = Nothing
-      , trumpSuit = Nothing
-      , turn = Nothing
-      , board = []
-      , teamATricks = 0
-      , teamBTricks = 0
-      , teamAPoints = 0
-      , teamBPoints = 0
-      }
-mkGameSummary username game@(GameChoosingHokm s) = do
-  idx <- getPlayerIndexWithUsername username game
-  let players = s ^. #players
-  let player = players ^. playerL idx
-  let cards = player ^. #cards
-  let playersSummary = mkPlayersSummary players
-  let hakem = getPlayerName (s ^. #hakem) players
-  pure
-    GameSummary
-      { status = SummaryChoosingHokm
-      , cards
+mkGameSummary :: PlayerIndex -> Game -> GameSummary
+mkGameSummary _ GameBeforeStart = GameSummaryBeforeStart
+mkGameSummary playerIndex game@(GameChoosingHokm s) =
+  let
+    players = s ^. #players
+    player = players ^. playerL playerIndex
+    cards = player ^. #cards
+    playersSummary = mkPlayersSummary players
+   in
+    GameSummaryChoosingHokm
+      { cards
+      , playerIndex
+      , hakem = s ^. #hakem
       , players = playersSummary
-      , hakem = Just hakem
-      , trumpSuit = Nothing
-      , turn = Nothing
-      , board = []
-      , teamATricks = 0
-      , teamBTricks = 0
       , teamAPoints = s ^. #teamAPoints
       , teamBPoints = s ^. #teamBPoints
       }
-mkGameSummary username game@(GameInProgress s) = do
-  idx <- getPlayerIndexWithUsername username game
-  let players = s ^. #players
-  let player = players ^. playerL idx
-  let cards = player ^. #cards
-  let playersSummary = mkPlayersSummary players
-  let hakem = getPlayerName (s ^. #hakem) players
-  let board = s ^. #board |> toList
-  let turn = getPlayerName (s ^. #turn) players
-  pure
-    GameSummary
-      { status = SummaryInProgress
-      , cards
+mkGameSummary playerIndex game@(GameInProgress s) =
+  let
+    players = s ^. #players
+    player = players ^. playerL playerIndex
+    cards = player ^. #cards
+    playersSummary = mkPlayersSummary players
+   in
+    GameSummaryInProgress
+      { cards
+      , playerIndex
+      , hakem = s ^. #hakem
+      , turn = s ^. #turn
       , players = playersSummary
-      , hakem = Just hakem
-      , trumpSuit = Just (s ^. #trumpSuit)
-      , turn = Just turn
-      , board
+      , trumpSuit = s ^. #trumpSuit
+      , board = s ^. #board |> toList
+      , teamAPoints = s ^. #teamAPoints
+      , teamBPoints = s ^. #teamBPoints
       , teamATricks = s ^. #teamATricks
       , teamBTricks = s ^. #teamBTricks
+      }
+mkGameSummary playerIndex game@(GameEndOfTrick s) =
+  let
+    players = s ^. #players
+    player = players ^. playerL playerIndex
+    cards = player ^. #cards
+    playersSummary = mkPlayersSummary players
+   in
+    GameSummaryEndOfTrick
+      { cards
+      , playerIndex
+      , hakem = s ^. #hakem
+      , players = playersSummary
+      , trumpSuit = s ^. #trumpSuit
+      , board = s ^. #board |> toList
       , teamAPoints = s ^. #teamAPoints
       , teamBPoints = s ^. #teamBPoints
-      }
-mkGameSummary username game@(GameEndOfTrick s) = do
-  idx <- getPlayerIndexWithUsername username game
-  let players = s ^. #players
-  let player = players ^. playerL idx
-  let cards = player ^. #cards
-  let playersSummary = mkPlayersSummary players
-  let hakem = getPlayerName (s ^. #hakem) players
-  let board = s ^. #board |> toList
-  pure
-    GameSummary
-      { status = SummaryEndOfTrick
-      , cards
-      , players = playersSummary
-      , hakem = Just hakem
-      , trumpSuit = Just (s ^. #trumpSuit)
-      , turn = Nothing
-      , board
       , teamATricks = s ^. #teamATricks
       , teamBTricks = s ^. #teamBTricks
-      , teamAPoints = s ^. #teamAPoints
-      , teamBPoints = s ^. #teamBPoints
       }
-mkGameSummary username game@(GameEnd s) = do
-  idx <- getPlayerIndexWithUsername username game
-  let players = s ^. #players
-  let player = players ^. playerL idx
-  let cards = player ^. #cards
-  let playersSummary = mkPlayersSummary players
-  pure
-    GameSummary
-      { status = SummaryEndOfTrick
-      , cards
+mkGameSummary playerIndex game@(GameEnd s) =
+  let
+    players = s ^. #players
+    player = players ^. playerL playerIndex
+    cards = player ^. #cards
+    playersSummary = mkPlayersSummary players
+   in
+    GameSummaryEnd
+      { playerIndex
       , players = playersSummary
-      , hakem = Nothing
-      , trumpSuit = Nothing
-      , turn = Nothing
-      , board = []
-      , teamATricks = 0
-      , teamBTricks = 0
+      , winnerTeam = s ^. #winnerTeam
       , teamAPoints = s ^. #teamAPoints
       , teamBPoints = s ^. #teamBPoints
       }

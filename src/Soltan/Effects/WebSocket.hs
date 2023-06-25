@@ -8,6 +8,8 @@ import Soltan.Data.Has (Has, grab)
 import Soltan.Socket.Types (Client)
 import Soltan.SocketApp (SocketApp)
 import UnliftIO (MonadUnliftIO, withRunInIO)
+import Soltan.Effects.LogMessages (HasLog)
+import qualified Soltan.Effects.LogMessages as Logger
 
 class Monad m => WebSocketServer m where
   type ConnectionId m :: Type
@@ -36,7 +38,10 @@ instance WebSocketMessaging SocketApp where
 type WebSocket m = (WebSocketServer m, WebSocketMessaging m)
 
 receiveImpl :: MonadIO m => WS.Connection -> m ByteString
-receiveImpl conn = liftIO <| WS.receiveData conn
+receiveImpl conn = do
+  d <- liftIO <| WS.receiveData conn
+  print d
+  pure d
 
 sendImpl :: MonadIO m => WS.Connection -> ByteString -> m ()
 sendImpl conn msg = liftIO <| WS.sendTextData conn msg
@@ -44,10 +49,13 @@ sendImpl conn msg = liftIO <| WS.sendTextData conn msg
 sendJSON :: forall a m. (WebSocketMessaging m, ToJSON a) => ConnectionId m -> a -> m ()
 sendJSON conn msg = send conn (BS.toStrict . Aeson.encode <| msg)
 
-receiveJSON :: forall a m. (WebSocketMessaging m, FromJSON a) => ConnectionId m -> m (Maybe a)
-receiveJSON conn = Aeson.decode . BS.fromStrict <$> receive conn
+receiveJSON :: forall a m. (WebSocketMessaging m, FromJSON a, HasLog m) => ConnectionId m -> m (Maybe a)
+receiveJSON conn = do
+  m <- receive conn
+  Logger.debug <| "Received -> " <> show m
+  pure <| Aeson.decode . BS.fromStrict <| m
 
-producer :: forall a m. (WebSocketMessaging m, FromJSON a) => ConnectionId m -> Producer a m ()
+producer :: forall a m. (WebSocketMessaging m, FromJSON a, HasLog m) => ConnectionId m -> Producer a m ()
 producer conn = void . infinitely <| whenJustM (lift (receiveJSON conn)) yield
 
 consumer :: forall a m. (WebSocketMessaging m, ToJSON a) => ConnectionId m -> Consumer a m ()

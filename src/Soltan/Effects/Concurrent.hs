@@ -1,12 +1,13 @@
 module Soltan.Effects.Concurrent where
 
-import Pipes (Consumer', Producer')
+import Pipes (Consumer', Producer', Proxy)
 import Pipes.Concurrent (Buffer, Input, Output)
 import qualified Pipes.Concurrent
 import Soltan.SocketApp (SocketApp)
 import UnliftIO (MonadUnliftIO, async)
 import qualified UnliftIO
 import qualified UnliftIO.Concurrent as UnliftIO
+import Prelude hiding (Proxy)
 
 class Monad m => Concurrent m where
   forkProcess :: m a -> m ()

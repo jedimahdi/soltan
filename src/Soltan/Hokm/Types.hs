@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -Wno-partial-fields #-}
 
 module Soltan.Hokm.Types where
 
@@ -229,19 +230,48 @@ data GameSummaryStatus
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON)
 
-data GameSummary = GameSummary
-  { status :: GameSummaryStatus
-  , cards :: [Card]
-  , players :: [PlayerSummary]
-  , hakem :: Maybe Username
-  , turn :: Maybe Username
-  , trumpSuit :: Maybe Suit
-  , board :: [PlayedCard]
-  , teamATricks :: Trick
-  , teamBTricks :: Trick
-  , teamAPoints :: Point
-  , teamBPoints :: Point
-  }
+data GameSummary
+  = GameSummaryBeforeStart
+  | GameSummaryChoosingHokm
+      { cards :: [Card]
+      , hakem :: PlayerIndex
+      , playerIndex :: PlayerIndex
+      , players :: [PlayerSummary]
+      , teamAPoints :: Point
+      , teamBPoints :: Point
+      }
+  | GameSummaryInProgress
+      { cards :: [Card]
+      , hakem :: PlayerIndex
+      , playerIndex :: PlayerIndex
+      , turn :: PlayerIndex
+      , trumpSuit :: Suit
+      , board :: [PlayedCard]
+      , players :: [PlayerSummary]
+      , teamATricks :: Trick
+      , teamBTricks :: Trick
+      , teamAPoints :: Point
+      , teamBPoints :: Point
+      }
+  | GameSummaryEndOfTrick
+      { cards :: [Card]
+      , hakem :: PlayerIndex
+      , playerIndex :: PlayerIndex
+      , trumpSuit :: Suit
+      , board :: [PlayedCard]
+      , players :: [PlayerSummary]
+      , teamATricks :: Trick
+      , teamBTricks :: Trick
+      , teamAPoints :: Point
+      , teamBPoints :: Point
+      }
+  | GameSummaryEnd
+      { playerIndex :: PlayerIndex
+      , winnerTeam :: Team
+      , players :: [PlayerSummary]
+      , teamAPoints :: Point
+      , teamBPoints :: Point
+      }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON)
 

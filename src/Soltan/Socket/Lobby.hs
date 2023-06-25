@@ -3,20 +3,18 @@ module Soltan.Socket.Lobby where
 import Control.Lens (ito, itraversed, lengthOf, to, traversed, (^..), (^@..))
 import Pipes.Concurrent (Input, Output, newest, spawn)
 import Soltan.Data.Username (Username)
-import Soltan.Hokm.Types (Game (..))
+import Soltan.Hokm (initialGame, Game)
 import Soltan.Socket.Types (Lobby, Table (..), TableName, TableSummary (..))
 
 initialLobby :: MonadIO m => m Lobby
 initialLobby = do
-  -- randGen <- getStdGen
-  -- let shuffledDeck' = shuffledDeck randGen
   (output, input) <- liftIO <| spawn <| newest 1
   let table =
         Table
           { subscribers = []
           , gameInMailbox = output
           , gameOutMailbox = input
-          , game = GameBeforeStart
+          , game = initialGame
           }
   pure <| fromList [("Black", table)]
 
@@ -26,7 +24,7 @@ mkTable input output users =
     { subscribers = users
     , gameInMailbox = output
     , gameOutMailbox = input
-    , game = GameBeforeStart
+    , game = initialGame
     }
 
 summariseTable :: TableName -> Table -> TableSummary

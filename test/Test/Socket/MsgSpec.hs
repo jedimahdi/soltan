@@ -13,7 +13,7 @@ import Soltan.Socket.Lobby (mkTable)
 import Soltan.Socket.Msg
 import Soltan.Socket.Types
 import System.Random (getStdGen)
-import Test.Hspec (Spec, before, describe, it, shouldBe, shouldContain)
+import Test.Hspec (Spec, before, describe, it, shouldBe, shouldContain, shouldReturn)
 import UnliftIO (MonadUnliftIO)
 
 newtype TestApp a = TestApp {runApp :: ReaderT Lobby IO a}
@@ -58,8 +58,7 @@ spec = do
       cmds `shouldBe` Right [SendMsg (TableList [])]
     it "should return table summary of tables in lobby" do
       lobby <- lobbyFixture
-      Right cmds <- runTestApp lobby (runExceptT getTablesHandler)
-      cmds `shouldBe` [SendMsg (TableList [TableSummary "A" 0, TableSummary "B" 2, TableSummary "C" 4])]
+      runTestApp lobby (runExceptT getTablesHandler) `shouldReturn` Right [SendMsg (TableList [TableSummary "A" 0, TableSummary "B" 2, TableSummary "C" 4])]
 
     describe "subscribeToTableHandler" do
       it "should not be able to join when table is already full" do

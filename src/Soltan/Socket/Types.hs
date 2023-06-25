@@ -1,22 +1,9 @@
 module Soltan.Socket.Types where
 
-import Control.Concurrent.STM (TChan, TVar)
 import Data.Generics.Labels ()
-import qualified Network.WebSockets as WS
-import Pipes (
-  Consumer,
-  Effect,
-  Pipe,
-  await,
-  runEffect,
-  yield,
-  (>->),
- )
 import Pipes.Concurrent (Input, Output)
-import Soltan.Data.Has (Has (..))
 import Soltan.Data.Username (Username)
-import Soltan.Hokm (Card, Game, GameErr, Suit)
-import Soltan.Hokm.Types (GameSummary)
+import Soltan.Hokm (Card, Game, GameErr, GameSummary, Suit)
 import Text.Show
 import Prelude hiding (Show, show)
 
@@ -37,10 +24,6 @@ instance Show Table where
 instance Eq Table where
   Table{game = game1} == Table{game = game2} = game1 == game2
 
--- instance Ord Table where
---   Table{game = game1} `compare` Table{game = game2} =
---     game1 `compare` game2
-
 data TableSummary = TableSummary
   { tableName :: TableName
   , playerCount :: Int
@@ -54,9 +37,6 @@ data Client = Client
   }
   deriving stock (Generic)
 
-instance Has Client Client where
-  obtain = identity
-
 instance Show Client where
   show Client{..} = show username
 
@@ -64,12 +44,7 @@ instance Eq Client where
   Client{username = username1} == Client{username = username2} =
     username1 == username2
 
--- newtype Lobby
---   = Lobby (Map TableName Table)
-
 type Lobby = Map TableName Table
-
--- deriving (Ord, Eq, Show)
 
 data ServerState = ServerState
   { clients :: Map Username Client
@@ -80,9 +55,9 @@ data ServerState = ServerState
 data MsgOut
   = TableList [TableSummary]
   | ErrMsg Err
-  | AuthSuccess
+  | AuthSuccess Username
   | NewGameStateSummary TableName GameSummary
-  | SuccessfullySubscribedToTable TableName Game
+  | SuccessfullySubscribedToTable TableName TableSummary
   deriving stock (Generic, Show, Eq)
   deriving anyclass (ToJSON)
 
@@ -97,6 +72,7 @@ data Err
 
 data MsgIn
   = GetTables
+  | Login Username
   | SubscribeToTable TableName
   | GameMsgIn GameMsgIn
   deriving (Show, Eq, Generic, FromJSON, ToJSON)
@@ -106,20 +82,11 @@ data GameMsgIn
   | ChooseHokmMsg TableName Suit
   deriving (Show, Eq, Generic, FromJSON, ToJSON)
 
-data MsgHandlerConfig = MsgHandlerConfig
-  { serverStateTVar :: TVar ServerState
-  , username :: Username
-  , clientConn :: WS.Connection
-  }
-
 newtype TableDoesNotExistInLobby
   = TableDoesNotExistInLobby Text
   deriving stock (Show)
 
 instance Exception TableDoesNotExistInLobby
-
-type WithServerState env m = (MonadReader env m, Has (TVar ServerState) env, MonadIO m)
-type WithClient env m = (MonadReader env m, Has Client env)
 
 data Command
   = SendMsg MsgOut

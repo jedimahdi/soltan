@@ -19,7 +19,7 @@ import Soltan.Effects.Now (Now)
 import Soltan.Effects.Random (MonadRandom)
 import Soltan.Effects.WebSocket (ConnectionId, WebSocket, WebSocketMessaging)
 import qualified Soltan.Effects.WebSocket as WebSocket
-import Soltan.Hokm.Types (Game)
+import Soltan.Hokm (Game)
 import Soltan.Logger.Message (Scope (..))
 import qualified Soltan.Logger.Message as Logger.Message
 import Soltan.Socket.Clients (authenticateClient)
@@ -65,7 +65,7 @@ app :: (WebSocketMessaging m, HasLog m, ManageLobby m, ManageClients m, Concurre
 app conn = authenticateClient conn >>= either authenticateFailed (\username -> go username `Concurrent.finally` disconnect username)
  where
   go username = do
-    WebSocket.sendJSON conn AuthSuccess
+    WebSocket.sendJSON conn (AuthSuccess username)
     Logger.debug <| show username <> " Connected."
     (writeMsgInSource, readMsgInSource) <- Concurrent.spawn <| newest 1
     (writeMsgOutSource, readMsgOutSource) <- Concurrent.spawn <| newest 1
@@ -108,23 +108,7 @@ runCommands writeMsgOutSource = await >>= traverse_ interpretCommand
  where
   interpretCommand :: Command -> Producer' MsgOut m ()
   interpretCommand (SendMsg msgOut) = yield msgOut
-  interpretCommand (JoinLobby tableName username) = lift <| Lobby.addSubscriber tableName username
+  interpretCommand (JoinLobby tableName username) = Lobby.addSubscriber tableName username
   interpretCommand (NewGameState tableName game) =
-    lift <| Lobby.withTable tableName pass \table ->
+     lift <| Lobby.withTable tableName pass \table ->
       runEffect <| yield game >-> Concurrent.toOutput (table ^. #gameInMailbox)
-
--- wreceiveJSON :: forall a m. (WebSocket m, FromJSON a, LogMessages m, Now m, Show a) => m (Maybe a)
--- wreceiveJSON = do
---   msg <- WebSocket.receive
---   Logger.debug <| "Recieved Msg " <> show msg
---   let m = Aeson.decode . BS.fromStrict <| msg
---   Logger.debug <| "Parsed Msg is " <> show m
---   pure m
---
--- wproducer :: forall a m. (WebSocket m, FromJSON a, LogMessages m, Now m, Show a) => Producer a m ()
--- wproducer =
---   void . infinitely <| do
---     mMsg <- lift wreceiveJSON
---     case mMsg of
---       Nothing -> lift <| Logger.warning "Msg format is wrong"
---       Just msg -> yield msg

@@ -105,9 +105,7 @@ library
                        Soltan.Logger.Severity
                        Soltan.SocketApp
                        Soltan.Socket
-                       Soltan.Socket.Prelude
                        Soltan.Socket.Types
-                       Soltan.Socket.Utils
                        Soltan.Socket.Msg
                        Soltan.Socket.Clients
                        Soltan.Socket.Lobby

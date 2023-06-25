@@ -9,11 +9,12 @@ import Colog (
   (&>),
  )
 import qualified Colog
-import Pipes (Pipe, await, yield)
+import Pipes (Pipe, await, yield, Proxy)
 import Soltan.Effects.Now (Now)
 import qualified Soltan.Effects.Now as Now
 import qualified Soltan.Logger.Message as Message
 import Soltan.Logger.Severity (Severity (..))
+import Prelude hiding (Proxy)
 import Soltan.SocketApp (SocketApp)
 
 class Monad m => LogMessages m where
@@ -23,6 +24,15 @@ instance LogMessages SocketApp where
   logMessage = logMsg
 
 instance LogMessages m => LogMessages (ExceptT e m) where
+  logMessage = lift . logMessage
+
+instance LogMessages m => LogMessages (StateT e m) where
+  logMessage = lift . logMessage
+
+instance LogMessages m => LogMessages (ReaderT e m) where
+  logMessage = lift . logMessage
+
+instance LogMessages m => LogMessages (Proxy a' a b' b m) where
   logMessage = lift . logMessage
 
 type HasLog m = (LogMessages m, Now m)
