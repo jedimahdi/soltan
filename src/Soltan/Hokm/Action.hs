@@ -36,8 +36,11 @@ chooseHokm idx suit (GameChoosingHokm g) = GameInProgress initialInProgress
       , teamATricks = 0
       , teamBTricks = 0
       }
-  (player1Cards, player2Cards, player3Cards, hakemCards') = g ^. #remainingDeck |> splitThreeWayWithRem 5
-  hakemCards = hakemCards' <> g ^. #players . playerL (g ^. #hakem) . #cards
+  (player1Cards', player2Cards', player3Cards', hakemCards') = g ^. #remainingDeck |> splitThreeWayWithRem 5
+  hakemCards = sortBy rankAndSuitCardOrdering <| hakemCards' <> g ^. #players . playerL (g ^. #hakem) . #cards
+  player1Cards = sortBy rankAndSuitCardOrdering player1Cards'
+  player2Cards = sortBy rankAndSuitCardOrdering player2Cards'
+  player3Cards = sortBy rankAndSuitCardOrdering player3Cards'
   u1 = g ^. #players . #player1 . #playerName
   u2 = g ^. #players . #player2 . #playerName
   u3 = g ^. #players . #player3 . #playerName

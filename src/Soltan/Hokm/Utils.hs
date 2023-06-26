@@ -213,6 +213,11 @@ mkGameSummary playerIndex game@(GameEnd s) =
       , teamBPoints = s ^. #teamBPoints
       }
 
+rankAndSuitCardOrdering :: Card -> Card -> Ordering
+rankAndSuitCardOrdering (Card rank1 suit1) (Card rank2 suit2) = case compare suit2 suit1 of
+  EQ -> compare rank2 rank1
+  c -> c
+
 splitThreeWayWithRem :: Int -> [a] -> ([a], [a], [a], [a])
 splitThreeWayWithRem n xs =
   let r = (length xs + n) `quot` 4
