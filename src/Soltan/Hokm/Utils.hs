@@ -2,6 +2,7 @@ module Soltan.Hokm.Utils where
 
 import Control.Lens (anyOf, elemOf, lengthOf, traversed, (^..))
 import Data.List (foldl, foldl1', head, tail)
+import qualified Data.List as List
 import Data.Map.Lazy (Map)
 import qualified Data.Map.Lazy as M
 import Soltan.Data.AtMostThree (AtMostThree (..))
@@ -134,13 +135,24 @@ getPlayerName idx players = players ^. playerL idx . #playerName
 playersToList :: Players -> [Player]
 playersToList (Players p1 p2 p3 p4) = [p1, p2, p3, p4]
 
-mkPlayersSummary :: Players -> [PlayerSummary]
-mkPlayersSummary (Players p1 p2 p3 p4) =
-  [ PlayerSummary (p1 ^. #playerName) (p1 ^. #team) Player1
-  , PlayerSummary (p2 ^. #playerName) (p2 ^. #team) Player2
-  , PlayerSummary (p3 ^. #playerName) (p3 ^. #team) Player3
-  , PlayerSummary (p4 ^. #playerName) (p4 ^. #team) Player4
-  ]
+mkPlayerSummary :: Maybe Card -> Bool -> Bool -> PlayerIndex -> Player -> PlayerSummary
+mkPlayerSummary playedCard isTurnToPlay isHakem idx player =
+  PlayerSummary
+    { username = player ^. #playerName
+    , team = player ^. #team
+    , isHakem
+    , idx
+    , playedCard
+    , isTurnToPlay
+    }
+
+-- mkPlayersSummary :: Players -> [PlayerSummary]
+-- mkPlayersSummary (Players p1 p2 p3 p4) =
+--   [ PlayerSummary (p1 ^. #playerName) (p1 ^. #team) Player1
+--   , PlayerSummary (p2 ^. #playerName) (p2 ^. #team) Player2
+--   , PlayerSummary (p3 ^. #playerName) (p3 ^. #team) Player3
+--   , PlayerSummary (p4 ^. #playerName) (p4 ^. #team) Player4
+--   ]
 
 mkGameSummary :: PlayerIndex -> Game -> GameSummary
 mkGameSummary _ GameBeforeStart = GameSummaryBeforeStart
@@ -148,69 +160,102 @@ mkGameSummary playerIndex game@(GameChoosingHokm s) =
   let
     players = s ^. #players
     player = players ^. playerL playerIndex
+    team = player ^. #team
     cards = player ^. #cards
-    playersSummary = mkPlayersSummary players
+    hakem = s ^. #hakem
+    mkPlayer i = mkPlayerSummary Nothing False (i == hakem) i (players ^. playerL i)
+    teamAPoints = s ^. #teamAPoints
+    teamBPoints = s ^. #teamBPoints
    in
     GameSummaryChoosingHokm
       { cards
       , playerIndex
       , hakem = s ^. #hakem
-      , players = playersSummary
-      , teamAPoints = s ^. #teamAPoints
-      , teamBPoints = s ^. #teamBPoints
+      , yourTeamPoints = if team == A then teamAPoints else teamBPoints
+      , rivalTeamPoints = if team == B then teamAPoints else teamBPoints
+      , player1 = mkPlayer playerIndex
+      , player2 = mkPlayer . nextPlayerIndexTurn <| playerIndex
+      , player3 = mkPlayer . nextPlayerIndexTurn . nextPlayerIndexTurn <| playerIndex
+      , player4 = mkPlayer . nextPlayerIndexTurn . nextPlayerIndexTurn . nextPlayerIndexTurn <| playerIndex
       }
 mkGameSummary playerIndex game@(GameInProgress s) =
   let
     players = s ^. #players
     player = players ^. playerL playerIndex
+    team = player ^. #team
     cards = player ^. #cards
-    playersSummary = mkPlayersSummary players
+    hakem = s ^. #hakem
+    turn = s ^. #turn
+    board = s ^. #board |> toList
+    mkPlayer i = mkPlayerSummary (view #card <$> List.find ((== i) . view #playerIndex) board) (i == turn) (i == hakem) i (players ^. playerL i)
+    teamAPoints = s ^. #teamAPoints
+    teamBPoints = s ^. #teamBPoints
+    teamATricks = s ^. #teamATricks
+    teamBTricks = s ^. #teamBTricks
    in
     GameSummaryInProgress
       { cards
       , playerIndex
       , hakem = s ^. #hakem
       , turn = s ^. #turn
-      , players = playersSummary
       , trumpSuit = s ^. #trumpSuit
-      , board = s ^. #board |> toList
-      , teamAPoints = s ^. #teamAPoints
-      , teamBPoints = s ^. #teamBPoints
-      , teamATricks = s ^. #teamATricks
-      , teamBTricks = s ^. #teamBTricks
+      , yourTeamPoints = if team == A then teamAPoints else teamBPoints
+      , rivalTeamPoints = if team == B then teamAPoints else teamBPoints
+      , yourTeamTricks = if team == A then teamATricks else teamBTricks
+      , rivalTeamTricks = if team == B then teamATricks else teamBTricks
+      , player1 = mkPlayer playerIndex
+      , player2 = mkPlayer . nextPlayerIndexTurn <| playerIndex
+      , player3 = mkPlayer . nextPlayerIndexTurn . nextPlayerIndexTurn <| playerIndex
+      , player4 = mkPlayer . nextPlayerIndexTurn . nextPlayerIndexTurn . nextPlayerIndexTurn <| playerIndex
       }
 mkGameSummary playerIndex game@(GameEndOfTrick s) =
   let
     players = s ^. #players
     player = players ^. playerL playerIndex
+    team = player ^. #team
     cards = player ^. #cards
-    playersSummary = mkPlayersSummary players
+    hakem = s ^. #hakem
+    board = s ^. #board |> toList
+    mkPlayer i = mkPlayerSummary (view #card <$> List.find ((== i) . view #playerIndex) board) False (i == hakem) i (players ^. playerL i)
+    teamAPoints = s ^. #teamAPoints
+    teamBPoints = s ^. #teamBPoints
+    teamATricks = s ^. #teamATricks
+    teamBTricks = s ^. #teamBTricks
    in
     GameSummaryEndOfTrick
       { cards
       , playerIndex
       , hakem = s ^. #hakem
-      , players = playersSummary
       , trumpSuit = s ^. #trumpSuit
-      , board = s ^. #board |> toList
-      , teamAPoints = s ^. #teamAPoints
-      , teamBPoints = s ^. #teamBPoints
-      , teamATricks = s ^. #teamATricks
-      , teamBTricks = s ^. #teamBTricks
+      , yourTeamPoints = if team == A then teamAPoints else teamBPoints
+      , rivalTeamPoints = if team == B then teamAPoints else teamBPoints
+      , yourTeamTricks = if team == A then teamATricks else teamBTricks
+      , rivalTeamTricks = if team == B then teamATricks else teamBTricks
+      , player1 = mkPlayer playerIndex
+      , player2 = mkPlayer . nextPlayerIndexTurn <| playerIndex
+      , player3 = mkPlayer . nextPlayerIndexTurn . nextPlayerIndexTurn <| playerIndex
+      , player4 = mkPlayer . nextPlayerIndexTurn . nextPlayerIndexTurn . nextPlayerIndexTurn <| playerIndex
       }
 mkGameSummary playerIndex game@(GameEnd s) =
   let
     players = s ^. #players
     player = players ^. playerL playerIndex
+    team = player ^. #team
     cards = player ^. #cards
-    playersSummary = mkPlayersSummary players
+    mkPlayer i = mkPlayerSummary Nothing False False i (players ^. playerL i)
+    teamAPoints = s ^. #teamAPoints
+    teamBPoints = s ^. #teamBPoints
    in
     GameSummaryEnd
       { playerIndex
-      , players = playersSummary
       , winnerTeam = s ^. #winnerTeam
-      , teamAPoints = s ^. #teamAPoints
-      , teamBPoints = s ^. #teamBPoints
+      , yourTeamPoints = if team == A then teamAPoints else teamBPoints
+      , rivalTeamPoints = if team == B then teamAPoints else teamBPoints
+      , player1 = mkPlayer playerIndex
+      , player2 = mkPlayer . nextPlayerIndexTurn <| playerIndex
+      , player3 = mkPlayer . nextPlayerIndexTurn . nextPlayerIndexTurn <| playerIndex
+      , player4 = mkPlayer . nextPlayerIndexTurn . nextPlayerIndexTurn . nextPlayerIndexTurn <| playerIndex
+      , areYouWinner = s ^. #winnerTeam == team
       }
 
 rankAndSuitCardOrdering :: Card -> Card -> Ordering

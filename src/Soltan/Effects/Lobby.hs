@@ -7,7 +7,6 @@ import Soltan.Data.Username (Username)
 import Soltan.Hokm (Game)
 import Soltan.Socket.Types (Lobby, ServerState, Table, TableName)
 import Soltan.SocketApp (SocketApp)
-import UnliftIO.STM (modifyTVar)
 import Prelude hiding (Proxy)
 
 class Monad m => AcquireLobby m where

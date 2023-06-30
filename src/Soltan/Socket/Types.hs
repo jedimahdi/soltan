@@ -13,7 +13,7 @@ data Table = Table
   { subscribers :: [Username]
   , gameOutMailbox :: Input Game
   , gameInMailbox :: Output Game
-  , game :: Game
+  , game :: !Game
   }
   deriving stock (Generic)
 
@@ -47,8 +47,8 @@ instance Eq Client where
 type Lobby = Map TableName Table
 
 data ServerState = ServerState
-  { clients :: Map Username Client
-  , lobby :: Lobby
+  { clients :: !(Map Username Client)
+  , lobby :: !Lobby
   }
   deriving stock (Generic)
 
@@ -88,7 +88,7 @@ newtype TableDoesNotExistInLobby
 
 instance Exception TableDoesNotExistInLobby
 
-data Command
+data Task
   = SendMsg MsgOut
   | NewGameState TableName Game
   | JoinLobby TableName Username

@@ -107,55 +107,55 @@ data GameErr
 
 data Game
   = GameBeforeStart
-  | GameChoosingHokm ChoosingHokmState
-  | GameInProgress GameInProgressState
-  | GameEndOfTrick GameEndOfTrickState
-  | GameEnd GameEndState
+  | GameChoosingHokm !ChoosingHokmState
+  | GameInProgress !GameInProgressState
+  | GameEndOfTrick !GameEndOfTrickState
+  | GameEnd !GameEndState
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON)
 
 data ChoosingHokmState = ChoosingHokmState
   { remainingDeck :: [Card]
-  , hakem :: PlayerIndex
-  , players :: Players
-  , teamAPoints :: Point
-  , teamBPoints :: Point
+  , hakem :: !PlayerIndex
+  , players :: !Players
+  , teamAPoints :: !Point
+  , teamBPoints :: !Point
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON)
 
 data GameInProgressState = GameInProgressState
-  { turn :: PlayerIndex
-  , hakem :: PlayerIndex
-  , trumpSuit :: Suit
-  , players :: Players
-  , board :: AtMostThree PlayedCard
-  , teamAPoints :: Point
-  , teamBPoints :: Point
-  , teamATricks :: Trick
-  , teamBTricks :: Trick
+  { turn :: !PlayerIndex
+  , hakem :: !PlayerIndex
+  , trumpSuit :: !Suit
+  , players :: !Players
+  , board :: !(AtMostThree PlayedCard)
+  , teamAPoints :: !Point
+  , teamBPoints :: !Point
+  , teamATricks :: !Trick
+  , teamBTricks :: !Trick
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON)
 
 data GameEndOfTrickState = GameEndOfTrickState
-  { hakem :: PlayerIndex
-  , trumpSuit :: Suit
-  , players :: Players
-  , board :: Four PlayedCard
-  , teamAPoints :: Point
-  , teamBPoints :: Point
-  , teamATricks :: Trick
-  , teamBTricks :: Trick
+  { hakem :: !PlayerIndex
+  , trumpSuit :: !Suit
+  , players :: !Players
+  , board :: !(Four PlayedCard)
+  , teamAPoints :: !Point
+  , teamBPoints :: !Point
+  , teamATricks :: !Trick
+  , teamBTricks :: !Trick
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON)
 
 data GameEndState = GameEndState
-  { winnerTeam :: Team
-  , players :: Players
-  , teamAPoints :: Point
-  , teamBPoints :: Point
+  { winnerTeam :: !Team
+  , players :: !Players
+  , teamAPoints :: !Point
+  , teamBPoints :: !Point
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON)
@@ -178,10 +178,10 @@ data PlayedCard = PlayedCard
   deriving anyclass (ToJSON)
 
 data Players = Players
-  { player1 :: Player
-  , player2 :: Player
-  , player3 :: Player
-  , player4 :: Player
+  { player1 :: !Player
+  , player2 :: !Player
+  , player3 :: !Player
+  , player4 :: !Player
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON)
@@ -217,6 +217,9 @@ data PlayerSummary = PlayerSummary
   { username :: Username
   , team :: Team
   , idx :: PlayerIndex
+  , isHakem :: Bool
+  , playedCard :: Maybe Card
+  , isTurnToPlay :: Bool
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON)
@@ -236,9 +239,12 @@ data GameSummary
       { cards :: [Card]
       , hakem :: PlayerIndex
       , playerIndex :: PlayerIndex
-      , players :: [PlayerSummary]
-      , teamAPoints :: Point
-      , teamBPoints :: Point
+      , player1 :: PlayerSummary -- You
+      , player2 :: PlayerSummary
+      , player3 :: PlayerSummary
+      , player4 :: PlayerSummary
+      , yourTeamPoints :: Point
+      , rivalTeamPoints :: Point
       }
   | GameSummaryInProgress
       { cards :: [Card]
@@ -246,31 +252,39 @@ data GameSummary
       , playerIndex :: PlayerIndex
       , turn :: PlayerIndex
       , trumpSuit :: Suit
-      , board :: [PlayedCard]
-      , players :: [PlayerSummary]
-      , teamATricks :: Trick
-      , teamBTricks :: Trick
-      , teamAPoints :: Point
-      , teamBPoints :: Point
+      , player1 :: PlayerSummary -- You
+      , player2 :: PlayerSummary
+      , player3 :: PlayerSummary
+      , player4 :: PlayerSummary
+      , yourTeamTricks :: Trick
+      , rivalTeamTricks :: Trick
+      , yourTeamPoints :: Point
+      , rivalTeamPoints :: Point
       }
   | GameSummaryEndOfTrick
       { cards :: [Card]
       , hakem :: PlayerIndex
       , playerIndex :: PlayerIndex
       , trumpSuit :: Suit
-      , board :: [PlayedCard]
-      , players :: [PlayerSummary]
-      , teamATricks :: Trick
-      , teamBTricks :: Trick
-      , teamAPoints :: Point
-      , teamBPoints :: Point
+      , player1 :: PlayerSummary -- You
+      , player2 :: PlayerSummary
+      , player3 :: PlayerSummary
+      , player4 :: PlayerSummary
+      , yourTeamTricks :: Trick
+      , rivalTeamTricks :: Trick
+      , yourTeamPoints :: Point
+      , rivalTeamPoints :: Point
       }
   | GameSummaryEnd
       { playerIndex :: PlayerIndex
       , winnerTeam :: Team
-      , players :: [PlayerSummary]
-      , teamAPoints :: Point
-      , teamBPoints :: Point
+      , areYouWinner :: Bool
+      , player1 :: PlayerSummary -- You
+      , player2 :: PlayerSummary
+      , player3 :: PlayerSummary
+      , player4 :: PlayerSummary
+      , yourTeamPoints :: Point
+      , rivalTeamPoints :: Point
       }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON)

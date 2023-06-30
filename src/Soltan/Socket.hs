@@ -28,7 +28,6 @@ import Soltan.Socket.Msg (msgHandler)
 import Soltan.Socket.Table (setupTablePipeline)
 import Soltan.Socket.Types (
   Client (..),
-  Command (..),
   Err (..),
   Lobby,
   MsgIn,
@@ -37,6 +36,7 @@ import Soltan.Socket.Types (
   Table (..),
   TableDoesNotExistInLobby (..),
   TableName,
+  Task (..),
  )
 import Soltan.SocketApp (SocketApp, logScopedMessageToStdStreams, mkEnv, runSocketApp)
 
@@ -103,12 +103,12 @@ msgInsWorker readMsgInSource writeMsgOutSource client = void . infinitely . runE
       >-> runCommands writeMsgOutSource
       >-> Concurrent.toOutput writeMsgOutSource
 
-runCommands :: forall m. (Concurrent m, ManageLobby m) => Output MsgOut -> Pipe [Command] MsgOut m ()
-runCommands writeMsgOutSource = await >>= traverse_ interpretCommand
+runCommands :: forall m. (Concurrent m, ManageLobby m) => Output MsgOut -> Pipe [Task] MsgOut m ()
+runCommands writeMsgOutSource = await >>= traverse_ interpretTask
  where
-  interpretCommand :: Command -> Producer' MsgOut m ()
-  interpretCommand (SendMsg msgOut) = yield msgOut
-  interpretCommand (JoinLobby tableName username) = Lobby.addSubscriber tableName username
-  interpretCommand (NewGameState tableName game) =
-     lift <| Lobby.withTable tableName pass \table ->
+  interpretTask :: Task -> Producer' MsgOut m ()
+  interpretTask (SendMsg msgOut) = yield msgOut
+  interpretTask (JoinLobby tableName username) = Lobby.addSubscriber tableName username
+  interpretTask (NewGameState tableName game) =
+    lift <| Lobby.withTable tableName pass \table ->
       runEffect <| yield game >-> Concurrent.toOutput (table ^. #gameInMailbox)

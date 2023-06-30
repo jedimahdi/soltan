@@ -17,7 +17,7 @@ import Soltan.Hokm (Action (..), Game, PlayerIndex, getPlayerIndexWithUsername, 
 import Soltan.Socket.Lobby (summariseTable, summariseTables)
 import Soltan.Socket.Types (
   Client,
-  Command (..),
+  Task (..),
   Err (..),
   GameMsgIn (..),
   MsgIn (..),
@@ -27,7 +27,7 @@ import Soltan.Socket.Types (
   TableName,
  )
 
-msgHandler :: (AcquireLobby m, HasLog m, MonadRandom m) => Username -> MsgIn -> m [Command]
+msgHandler :: (AcquireLobby m, HasLog m, MonadRandom m) => Username -> MsgIn -> m [Task]
 msgHandler username msg =
   case msg of
     Login _ -> pure []
@@ -43,7 +43,7 @@ getTable tableName = ExceptT <| fmap (maybeToRight (TableDoesNotExist tableName)
 getPlayerIndex :: Monad m => Username -> Game -> ExceptT Err m PlayerIndex
 getPlayerIndex username game = maybe (throwE PlayerNotInTheGame) pure (getPlayerIndexWithUsername username game)
 
-runPlayerAction :: AcquireLobby m => TableName -> Username -> (PlayerIndex -> Action) -> ExceptT Err m [Command]
+runPlayerAction :: AcquireLobby m => TableName -> Username -> (PlayerIndex -> Action) -> ExceptT Err m [Task]
 runPlayerAction tableName username mkAction = do
   table <- getTable tableName
   let game = table ^. #game
@@ -52,7 +52,7 @@ runPlayerAction tableName username mkAction = do
     <| bimap GameErr (List.singleton . NewGameState tableName)
     <| runAction (mkAction playerIndex) game
 
-gameMsgHandler :: (AcquireLobby m, HasLog m) => GameMsgIn -> Username -> ExceptT Err m [Command]
+gameMsgHandler :: (AcquireLobby m, HasLog m) => GameMsgIn -> Username -> ExceptT Err m [Task]
 gameMsgHandler msg username = do
   Logger.debug <| "Game Msg In handler for " <> show msg
   case msg of
@@ -61,7 +61,7 @@ gameMsgHandler msg username = do
     ChooseHokmMsg tableName suit ->
       runPlayerAction tableName username (`ChooseHokm` suit)
 
-subscribeToTableHandler :: (AcquireLobby m, HasLog m, MonadRandom m) => TableName -> Username -> ExceptT Err m [Command]
+subscribeToTableHandler :: (AcquireLobby m, HasLog m, MonadRandom m) => TableName -> Username -> ExceptT Err m [Task]
 subscribeToTableHandler tableName username = do
   table <- getTable tableName
   let subscribers = table ^. #subscribers
@@ -82,7 +82,7 @@ subscribeToTableHandler tableName username = do
       let newGame = startGame gen users (table ^. #game)
       pure <| joinCommand <> [SendMsg msg, NewGameState tableName newGame]
 
-getTablesHandler :: AcquireLobby m => ExceptT Err m [Command]
+getTablesHandler :: AcquireLobby m => ExceptT Err m [Task]
 getTablesHandler = do
   lobby <- Lobby.getLobby
   let msgOut = TableList (summariseTables lobby)
