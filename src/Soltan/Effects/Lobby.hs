@@ -8,6 +8,10 @@ import Soltan.Hokm (Game)
 import Soltan.Socket.Types (Lobby, ServerState, Table, TableName)
 import Soltan.SocketApp (SocketApp)
 import Prelude hiding (Proxy)
+import Soltan.Effects.Stream (MonadStream, Stream)
+import qualified Soltan.Effects.Stream as Stream
+
+newtype BroadcastStream m = BroadcastStream (Stream m Game)
 
 class Monad m => AcquireLobby m where
   getTable :: TableName -> m (Maybe Table)
@@ -17,7 +21,11 @@ class AcquireLobby m => UpdateLobby m where
   updateGame :: TableName -> Game -> m ()
   addSubscriber :: TableName -> Username -> m ()
 
-type ManageLobby m = (AcquireLobby m, UpdateLobby m)
+class MonadStream m => LobbyBroadcastStreaming m where
+  outputToGameStream :: Stream.Consumer m Game
+  inputFromGameStream :: Stream.Producer m Game
+  
+type ManageLobby m = (AcquireLobby m, UpdateLobby m, LobbyBroadcastStreaming m)
 
 withTable :: AcquireLobby m => TableName -> m r -> (Table -> m r) -> m r
 withTable tableName onFail app = getTable tableName >>= maybe onFail app

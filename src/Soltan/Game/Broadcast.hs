@@ -1,13 +1,10 @@
 {-# LANGUAGE NumericUnderscores #-}
 {-# OPTIONS_GHC -Wno-redundant-constraints #-}
 
-module Soltan.Socket.Table where
+module Soltan.Game.Broadcast where
 
 import Control.Lens (ix, (^?))
 import qualified Data.Map as Map
-
--- import Pipes (Consumer, Effect, Pipe, await, runEffect, yield, (>->))
--- import Pipes.Concurrent (fromInput, toOutput)
 import Soltan.Data.Has (grab)
 import Soltan.Data.Username (Username)
 import Soltan.Effects.Clients (AcquireClients, ManageClients)
@@ -22,8 +19,8 @@ import Soltan.Effects.Random (MonadRandom)
 import qualified Soltan.Effects.Random as Random
 import Soltan.Effects.Stream
 import qualified Soltan.Effects.Stream as Stream
+import Soltan.Game.Types (MsgOut (..), Table, TableName, User (..))
 import Soltan.Hokm (Action (..), Game, canNextStage, getPlayerIndexWithUsername, isEndOfTrick, mkGameSummary, nextStage, runAction)
-import Soltan.Socket.Types (Client (..), MsgOut (..), ServerState (..), Table (..), TableName)
 import System.Random (StdGen, getStdGen)
 import UnliftIO (MonadUnliftIO, async)
 
@@ -46,18 +43,16 @@ setupTablePipeline tableName _ = do
       >-> Stream.mapM (\game -> flip nextStage game <$> Random.generateStdGen)
       >-> Lobby.outputToGameStream
 
-broadcast :: (Concurrent m, AcquireLobby m, AcquireClients m) => TableName -> Game -> m ()
+broadcast :: (AcquireLobby m, AcquireClients m, MonadStream m) => TableName -> Game -> m ()
 broadcast tableName g = do
   Lobby.withTable tableName pass \table -> do
     clients <- Clients.getClients
     let cs = mapMaybe (\username -> clients ^? ix username) (table ^. #subscribers)
     mapM_ (informSubscriber tableName g) cs
 
-informSubscriber :: Concurrent m => TableName -> Game -> Client -> m ()
-informSubscriber tableName game Client{..} = do
+informSubscriber :: (MonadStream m) => TableName -> Game -> User m -> m ()
+informSubscriber tableName game User{..} = do
   case getPlayerIndexWithUsername username game of
     Nothing -> pass
     Just playerIndex ->
-      pass
-
--- runEffect <| yield (NewGameStateSummary tableName (mkGameSummary playerIndex game)) >-> Concurrent.toOutput outgoingMailbox
+      runStreaming <| Stream.yield (NewGameStateSummary tableName (mkGameSummary playerIndex game)) >-> Stream.toStream outMailbox

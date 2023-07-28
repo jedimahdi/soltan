@@ -15,11 +15,12 @@ module Soltan.Hokm (
   nextStage,
   getPlayerIndexWithUsername,
   mkGameSummary,
-  isEndOfTrick
+  isEndOfTrick,
+  canNextStage,
 ) where
 
 import Soltan.Hokm.Action (runAction)
 import Soltan.Hokm.ActionValidation (validateAction)
-import Soltan.Hokm.Hokm (nextStage, startGame)
-import Soltan.Hokm.Types (Action (..), Card, Game, GameErr (..), GameSummary, Rank (..), Suit (..), PlayerIndex)
-import Soltan.Hokm.Utils (initialDeck, initialGame, getPlayerIndexWithUsername, mkGameSummary, isEndOfTrick)
+import Soltan.Hokm.Hokm (canNextStage, nextStage, startGame)
+import Soltan.Hokm.Types (Action (..), Card, Game, GameErr (..), GameSummary, PlayerIndex, Rank (..), Suit (..))
+import Soltan.Hokm.Utils (getPlayerIndexWithUsername, initialDeck, initialGame, isEndOfTrick, mkGameSummary)

@@ -44,6 +44,7 @@ common common-options
                      , async
                      , unliftio
                      , free
+                     , conduit
 
   ghc-options:         -Wall
                        -Wincomplete-uni-patterns
@@ -110,6 +111,9 @@ library
                        Soltan.Socket.Clients
                        Soltan.Socket.Lobby
                        Soltan.Socket.Table
+                       Soltan.Game.Types
+                       Soltan.Game.Broadcast
+                       Soltan.Game.Msg
                        Soltan.Effects.Now
                        Soltan.Effects.LogMessages
                        Soltan.Effects.WebSocket
@@ -117,6 +121,7 @@ library
                        Soltan.Effects.Concurrent
                        Soltan.Effects.Clients
                        Soltan.Effects.Random
+                       Soltan.Effects.Stream
                        Soltan.Hokm
                        Soltan.Hokm.Hokm
                        Soltan.Hokm.Scoring
