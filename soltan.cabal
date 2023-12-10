@@ -103,20 +103,13 @@ library
                        Soltan.Logger.Message
                        Soltan.Logger.Formatting
                        Soltan.Logger.Severity
-                       Soltan.SocketApp
                        Soltan.Socket
                        Soltan.Socket.Types
                        Soltan.Socket.Msg
                        Soltan.Socket.Clients
                        Soltan.Socket.Lobby
                        Soltan.Socket.Table
-                       Soltan.Effects.Now
-                       Soltan.Effects.LogMessages
-                       Soltan.Effects.WebSocket
-                       Soltan.Effects.Lobby
-                       Soltan.Effects.Concurrent
-                       Soltan.Effects.Clients
-                       Soltan.Effects.Random
+                       Soltan.Socket.Utils
                        Soltan.Hokm
                        Soltan.Hokm.Hokm
                        Soltan.Hokm.Scoring
@@ -124,6 +117,8 @@ library
                        Soltan.Hokm.ActionValidation
                        Soltan.Hokm.Action
                        Soltan.Hokm.Utils
+                       Soltan.Game.Manager
+                       Soltan.Game.Types
   build-depends:       co-log
                      , http-types
                      , network
