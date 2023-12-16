@@ -4,9 +4,14 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     utils.url = "github:numtide/flake-utils";
+    pre-commit-hooks = {
+      url = "github:cachix/pre-commit-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "utils";
+    };
   };
 
-  outputs = { nixpkgs, utils, ... }:
+  outputs = { self, nixpkgs, utils, pre-commit-hooks, ... }:
     utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
@@ -17,11 +22,20 @@
         };
       in
       {
-        devShell =
+        checks = {
+          pre-commit-check = pre-commit-hooks.lib.${system}.run {
+            src = ./.;
+            hooks = {
+              nixpkgs-fmt.enable = true;
+            };
+          };
+        };
+        devShells.default =
           pkgs.project.haskellPackages.shellFor
             {
               name = "soltan";
               packages = _: [ ];
+              inherit (self.checks.${system}.pre-commit-check) shellHook;
               buildInputs = with pkgs; [ zlib.dev ];
               nativeBuildInputs = builtins.concatMap
                 builtins.attrValues
