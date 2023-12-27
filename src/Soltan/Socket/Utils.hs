@@ -9,6 +9,3 @@ receiveJSON :: (FromJSON a) => WS.Connection -> IO (Maybe a)
 receiveJSON conn = do
   m <- WS.receiveData conn
   pure <| Aeson.decode . BS.fromStrict <| m
-
-log :: Text -> IO ()
-log = putTextLn

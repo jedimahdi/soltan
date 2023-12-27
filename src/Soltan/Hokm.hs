@@ -14,6 +14,8 @@ module Soltan.Hokm (
   startGame,
   nextStage,
   getPlayerIndexWithUsername,
+  getPlayers,
+  playersToList,
   mkGameSummary,
   isEndOfTrick
 ) where
@@ -22,4 +24,4 @@ import Soltan.Hokm.Action (runAction)
 import Soltan.Hokm.ActionValidation (validateAction)
 import Soltan.Hokm.Hokm (nextStage, startGame)
 import Soltan.Hokm.Types (Action (..), Card, Game, GameErr (..), GameSummary, Rank (..), Suit (..), PlayerIndex)
-import Soltan.Hokm.Utils (initialDeck, initialGame, getPlayerIndexWithUsername, mkGameSummary, isEndOfTrick)
+import Soltan.Hokm.Utils (initialDeck, initialGame, getPlayerIndexWithUsername, mkGameSummary, isEndOfTrick, getPlayers, playersToList)

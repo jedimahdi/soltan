@@ -8,6 +8,7 @@ import qualified Network.WebSockets as WS
 import Soltan.Data.Username (Username)
 import Soltan.Socket.Types
 import Soltan.Socket.Utils
+import Soltan.Logger.Severity (Severity(..))
 
 checkAddClient :: Server -> MsgIn -> WS.Connection -> IO (Maybe Client)
 checkAddClient server msg conn = do
@@ -30,8 +31,8 @@ newClient username connection = do
   pure <| Client{..}
 
 removeClient :: Server -> Username -> IO ()
-removeClient server username = do
-  putStrLn $ show username <> " has disconnected."
+removeClient server@Server{log} username = do
+  log Debug $ "User " <> show username <> " has disconnected."
   atomically do
     modifyTVar' (server ^. #clients) (sans username)
 

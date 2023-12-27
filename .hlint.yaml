@@ -242,10 +242,6 @@
     lhs: guard =<< f
     rhs: guardM f
 - warn:
-    lhs: forever
-    note: "'forever' is loosely typed and may hide errors"
-    rhs: infinitely
-- warn:
     lhs: "whenM (not <$> x)"
     rhs: unlessM x
 - warn:

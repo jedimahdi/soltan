@@ -1,5 +1,6 @@
 module Soltan where
 
+import qualified Chronos
 import qualified Control.Concurrent.Async as Async
 import Control.Concurrent.STM (writeTChan)
 import Control.Concurrent.STM.TChan (newTChanIO)
@@ -8,8 +9,9 @@ import qualified Network.Wai.Handler.Warp as Warp
 import Soltan.Data.Username (Username)
 import Soltan.Game.Manager
 import Soltan.Game.Types
-import Soltan.Logger.Message (Scope (..))
-import qualified Soltan.Logger.Message as Logger.Message
+import Soltan.Logger
+import Soltan.Logger.Message (LogMessage (..))
+import Soltan.Logger.Severity (Severity)
 import Soltan.Socket
 import Soltan.Socket.Types
 import Prelude hiding ((>$<))
@@ -19,6 +21,7 @@ main = do
   gameActionsChan <- newTChanIO
   clientsMap <- newTVarIO mempty
   tablesMap <- newTVarIO mempty
+  logChan <- newTChanIO
 
   let
     sendMessage :: Username -> Message -> IO ()
@@ -35,19 +38,11 @@ main = do
         (games ^? ix id)
         \table -> atomically $ writeTChan (table ^. #chan) command
 
-  startGameManagerThread gameActionsChan tablesMap sendMessage
-  run' 5000 clientsMap tablesMap (atomically . writeTChan gameActionsChan) sendGameCommand
+    log :: Severity -> Text -> IO ()
+    log severity message = do
+      time <- liftIO Chronos.now
+      withFrozenCallStack (logMsg logChan LogMessage{time, cs = callStack, ..})
 
--- let config@Config{..} = Config 8000 5000 (Logger.Message.Scoped Api >$< Logger.logScopedMessageToStdStreams)
--- data Config = Config
---   { apiPort :: Int
---   , socketPort :: Int
---   , logAction :: forall m. (MonadIO m) => LogAction m Logger.Message.Minimal
---   }
-
--- runSocketServer 5000
-
--- beforeMainLoopHook :: MonadIO m => Config -> m ()
--- beforeMainLoopHook Config{..} =
---   usingLoggerT logAction
---     <| Logger.info ("Started listening on 127.0.0.1:" <> show apiPort <> ". Websocket server on ws://localhost:" <> show socketPort)
+  startGameManagerThread gameActionsChan tablesMap sendMessage log
+  startLoggerThread logChan
+  run' 5000 clientsMap tablesMap (atomically . writeTChan gameActionsChan) sendGameCommand log

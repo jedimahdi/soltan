@@ -100,6 +100,7 @@ library
                        Soltan.Data.Four
                        Soltan.Data.AtMostThree
                        Soltan.Chronos
+                       Soltan.Logger
                        Soltan.Logger.Message
                        Soltan.Logger.Formatting
                        Soltan.Logger.Severity
@@ -119,8 +120,7 @@ library
                        Soltan.Hokm.Utils
                        Soltan.Game.Manager
                        Soltan.Game.Types
-  build-depends:       co-log
-                     , http-types
+  build-depends:       http-types
                      , network
                      , warp 
                      , wai

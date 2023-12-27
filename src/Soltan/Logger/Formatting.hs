@@ -1,22 +1,15 @@
-{-|
-Module      : Cascade.Logger.Formatting
-Description : !!! INSERT MODULE SHORT DESCRIPTION !!!
-Copyright   : (c) 2020-2021 Cascade
-License     : MPL 2.0
-Maintainer  : Mohammad Hasani <the-dr-lazy@pm.me> (the-dr-lazy.github.io)
-Stability   : Stable
-Portability : POSIX
+module Soltan.Logger.Formatting (
+  color,
+  square,
+) where
 
-!!! INSERT MODULE LONG DESCRIPTION !!!
--}
-
-module Soltan.Logger.Formatting
-    ( color
-    , square
-    ) where
-
-import           System.Console.ANSI
-    ( Color, ColorIntensity (Vivid), ConsoleLayer (Foreground), SGR (..), setSGRCode )
+import System.Console.ANSI (
+  Color,
+  ColorIntensity (Vivid),
+  ConsoleLayer (Foreground),
+  SGR (..),
+  setSGRCode,
+ )
 
 square :: Text -> Text
 square t = "[" <> t <> "] "

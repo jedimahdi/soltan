@@ -4,7 +4,6 @@ module Soltan.Data.Username (
   Username (..),
   mk,
   pattern Username,
-  -- , un
 ) where
 
 import Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey)

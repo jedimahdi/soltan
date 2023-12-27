@@ -1,3 +1,6 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Use newtype instead of data" #-}
 module Soltan.Game.Types where
 
 import Control.Concurrent.STM (TChan)
@@ -44,11 +47,14 @@ data TableInfo = TableInfo
   deriving anyclass (ToJSON)
 
 data GameCommand
-  = ChooseHokm Game.Suit
+  = ChooseHokm Username Game.Suit
   | StartGame (Four Username)
+  | PlayCard Username Game.Card
+  deriving (Show)
 
 data TableCommand
   = NewGame Username
+  deriving (Show)
 
 data GamesState = GameState
   { gamesMapVar :: TVar (Map TableId Table)

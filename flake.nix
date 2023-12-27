@@ -27,6 +27,7 @@
             src = ./.;
             hooks = {
               nixpkgs-fmt.enable = true;
+              hlint.enable = true;
             };
           };
         };

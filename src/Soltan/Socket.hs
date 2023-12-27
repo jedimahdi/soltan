@@ -1,6 +1,5 @@
 module Soltan.Socket where
 
-import Colog (usingLoggerT)
 import Control.Concurrent (threadDelay)
 import qualified Control.Concurrent.Async as Async
 import Control.Concurrent.STM (newTChan)
@@ -12,28 +11,28 @@ import qualified Data.Map as Map
 import qualified Network.WebSockets as WS
 import qualified Soltan.Data.Four as Four
 import Soltan.Data.Username (Username)
+import qualified Soltan.Data.Username as Username
 import Soltan.Game.Types
 import Soltan.Hokm (Game)
 import qualified Soltan.Hokm as Game
-import Soltan.Logger.Message (Scope (..))
-import qualified Soltan.Logger.Message as Logger.Message
+import Soltan.Logger.Severity (Severity (..))
 import Soltan.Socket.Clients
 import Soltan.Socket.Types
 import Soltan.Socket.Utils
 
-run' :: Int -> TVar (Map Username Client) -> TVar (Map TableId Table) -> (TableCommand -> IO ()) -> (TableId -> GameCommand -> IO ()) -> IO ()
-run' port clients tables sendTableCommand sendGameCommand = do
+run' :: Int -> TVar (Map Username Client) -> TVar (Map TableId Table) -> (TableCommand -> IO ()) -> (TableId -> GameCommand -> IO ()) -> (Severity -> Text -> IO ()) -> IO ()
+run' port clients tables sendTableCommand sendGameCommand log = do
   logManager <- newTChanIO
   let server = Server{..}
-  putStrLn $ "Running server on port " <> show port
+  log Info $ "Running server on port " <> show port
   WS.runServer "0.0.0.0" port \pending -> do
     conn <- WS.acceptRequest pending
     WS.withPingThread conn 30 pass do
       app' conn server
 
 app' :: WS.Connection -> Server -> IO ()
-app' conn server = do
-  putStrLn "We have a connection. I repeat..."
+app' conn server@Server{log} = do
+  log Debug "New Connection"
   msg <- receiveLogin
   mask \restore -> do
     ok <- checkAddClient server msg conn
@@ -50,8 +49,9 @@ app' conn server = do
       Just msg -> pure msg
 
 runClient :: Server -> Client -> IO ()
-runClient server client = do
-  atomically $ sendMessage client (Send (AuthSuccess (client ^. #username)))
+runClient server@Server{log} client@Client{username} = do
+  atomically $ sendMessage client (Send (AuthSuccess username))
+  log Debug $ "User " <> show username <> " joined."
   Async.race_ serverThread receive
  where
   receive = infinitely do
@@ -66,7 +66,8 @@ runClient server client = do
     when continue serverThread
 
 handleMessage :: Server -> Client -> Message -> IO Bool
-handleMessage server@Server{sendTableCommand, tables} client@Client{username} msg = do
+handleMessage server@Server{sendTableCommand, tables, log} client@Client{username} msg = do
+  log Debug $ "[User] " <> Username.un username <> " <- " <> show msg
   case msg of
     Notice txt ->
       send $ Noti txt
@@ -89,7 +90,6 @@ handleMessage server@Server{sendTableCommand, tables} client@Client{username} ms
       send $ Noti "Game being created..."
     -- atomically $ modifyTVar' (server ^. #tables) (ix id . #users %~ ((client ^. #username) :))
     _ -> pass
-  print msg
   pure True
  where
   send :: (ToJSON a) => a -> IO ()

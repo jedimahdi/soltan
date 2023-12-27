@@ -1,5 +1,3 @@
-{-# LANGUAGE NumericUnderscores #-}
-
 module Soltan.Socket.Table where
 
 -- import Control.Lens (ix, (^?))

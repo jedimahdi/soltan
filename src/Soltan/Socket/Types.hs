@@ -10,6 +10,7 @@ import Pipes.Concurrent (Input, Output)
 import Soltan.Data.Username (Username)
 import Soltan.Game.Types (GameCommand, Table, TableCommand, TableId, TableInfo)
 import Soltan.Hokm (Card, Game, GameErr, GameSummary, Suit)
+import Soltan.Logger.Severity (Severity)
 import Text.Show
 import Prelude hiding (Show, show)
 
@@ -21,6 +22,7 @@ data Server = Server
   , logManager :: !LogManager
   , sendTableCommand :: TableCommand -> IO ()
   , sendGameCommand :: TableId -> GameCommand -> IO ()
+  , log :: Severity -> Text -> IO ()
   }
   deriving stock (Generic)
 
