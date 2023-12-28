@@ -78,7 +78,7 @@ gameLoop id tableChan sendMessage log = do
           Left e -> pass
           Right newGame -> do
             put newGame
-            broadcast (GameInfo newGame)
+            broadcast (GameInfo id newGame)
 
   loop :: StateT Game IO ()
   loop = forever do
@@ -90,7 +90,7 @@ gameLoop id tableChan sendMessage log = do
         game <- get
         let startedGame = Game.startGame gen users game
         put startedGame
-        broadcast (GameInfo startedGame)
+        broadcast (GameInfo id startedGame)
       ChooseHokm username hokm -> do
         performGameAction username (`Game.ChooseHokm` hokm)
       PlayCard username card -> do

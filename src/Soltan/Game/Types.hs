@@ -61,3 +61,7 @@ data GamesState = GameState
   , nextTableId :: Int
   }
   deriving stock (Generic)
+
+-- data GameLoopEnv = GameLoopEnv
+--   { log :: Severity -> Text -> IO ()
+--   }

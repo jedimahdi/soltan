@@ -39,7 +39,7 @@ data Client = Client
 data Message
   = Notice Text
   | Send MsgOut
-  | GameInfo Game
+  | GameInfo TableId Game
   | Command MsgIn
   deriving stock (Generic, Show)
 
@@ -47,9 +47,9 @@ data MsgOut
   = TableList [TableInfo]
   | ErrMsg Err
   | AuthSuccess Username
-  | NewGameStateSummary GameSummary
+  | NewGameStateSummary TableId GameSummary
   | Noti Text
-  | SuccessfullySubscribedToTable TableId TableInfo
+  | SuccessfullySubscribedToTable TableInfo
   deriving stock (Generic, Show, Eq)
   deriving anyclass (ToJSON)
 

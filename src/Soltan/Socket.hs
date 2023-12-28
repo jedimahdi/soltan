@@ -5,6 +5,7 @@ import qualified Control.Concurrent.Async as Async
 import Control.Concurrent.STM (newTChan)
 import Control.Concurrent.STM.TChan (newTChanIO, readTChan, writeTChan)
 import Control.Exception
+import Control.Lens (elemOf, folded)
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString as BS
 import qualified Data.Map as Map
@@ -41,7 +42,7 @@ app' conn server@Server{log} = do
         restore <| do
           pass
       Just client -> do
-        restore (runClient server client) `finally` removeClient server (client ^. #username)
+        restore (runClient server client) `finally` disconnect server client
  where
   receiveLogin = do
     receiveJSON @MsgIn conn >>= \case
@@ -50,13 +51,23 @@ app' conn server@Server{log} = do
 
 runClient :: Server -> Client -> IO ()
 runClient server@Server{log} client@Client{username} = do
+  tablesMap <- readTVarIO (server ^. #tables)
+  let isUserInTableAlready = find (elemOf (#users . folded) username) tablesMap
   atomically $ sendMessage client (Send (AuthSuccess username))
+  case isUserInTableAlready of
+    Nothing -> pass
+    Just table -> do
+      atomically $ sendMessage client (Command (JoinTable (table ^. #id)))
+
   log Debug $ "User " <> show username <> " joined."
   Async.race_ serverThread receive
  where
   receive = infinitely do
-    receiveJSON @MsgIn (client ^. #connection) >>= \case
-      Nothing -> pass
+    rawMsg <- WS.receiveData (client ^. #connection)
+
+    case Aeson.decode (BS.fromStrict rawMsg) of
+      Nothing ->
+        log Warning $ "[User] Parsing user msg failed: " <> show rawMsg
       Just msg ->
         atomically $ sendMessage client (Command msg)
 
@@ -65,6 +76,15 @@ runClient server@Server{log} client@Client{username} = do
     continue <- handleMessage server client msg
     when continue serverThread
 
+disconnect :: Server -> Client -> IO ()
+disconnect server@Server{log} client@Client{username} = do
+  removeClient server username
+  clientStatus <- readTVarIO (client ^. #status)
+  case clientStatus of
+    InGame tableId -> do
+      leaveTable client server tableId
+    _ -> pass
+
 handleMessage :: Server -> Client -> Message -> IO Bool
 handleMessage server@Server{sendTableCommand, tables, log} client@Client{username} msg = do
   log Debug $ "[User] " <> Username.un username <> " <- " <> show msg
@@ -72,12 +92,12 @@ handleMessage server@Server{sendTableCommand, tables, log} client@Client{usernam
     Notice txt ->
       send $ Noti txt
     Send m -> send m
-    GameInfo game -> do
+    GameInfo tableId game -> do
       case Game.getPlayerIndexWithUsername username game of
         Nothing -> pass
         Just idx -> do
           let summary = Game.mkGameSummary idx game
-          send $ NewGameStateSummary summary
+          send $ NewGameStateSummary tableId summary
     Command GetTables -> do
       ts <- readTVarIO tables
       send $ TableList (mkTableInfo <$> Map.elems ts)
@@ -102,7 +122,7 @@ joinTable client@Client{username} server@Server{tables, sendGameCommand} tableId
     InGame clientGameTableId -> do
       send $ Noti "You are already in game"
       readTVarIO tables
-        >>= (maybe pass (send . SuccessfullySubscribedToTable clientGameTableId . mkTableInfo) . Map.lookup clientGameTableId)
+        >>= (maybe pass (send . SuccessfullySubscribedToTable . mkTableInfo) . Map.lookup clientGameTableId)
     Idle -> do
       atomically $ do
         tablesMap <- readTVar tables
@@ -121,7 +141,7 @@ joinTable client@Client{username} server@Server{tables, sendGameCommand} tableId
 
                 modifyTVar' tables (ix tableId . #users %~ (username :))
                 writeTVar (client ^. #status) (InGame tableId)
-                sendMessage client $ Send (SuccessfullySubscribedToTable tableId (mkTableInfo table))
+                sendMessage client $ Send (SuccessfullySubscribedToTable (mkTableInfo table))
               Started -> do
                 sendMessage client $ Send (Noti "Game already started")
  where
