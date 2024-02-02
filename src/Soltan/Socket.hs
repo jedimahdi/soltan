@@ -109,6 +109,18 @@ handleMessage server@Server{sendTableCommand, tables, log} client@Client{usernam
       sendTableCommand (NewGame username)
       send $ Noti "Game being created..."
     -- atomically $ modifyTVar' (server ^. #tables) (ix id . #users %~ ((client ^. #username) :))
+    Command (GameMsgIn (ChooseHokmMsg tableId suit)) -> do
+      tablesMap <- readTVarIO tables
+      case tablesMap ^? ix tableId of
+        Nothing -> pass
+        Just table -> do
+          atomically $ writeTChan (table ^. #chan) (ChooseHokm username suit)
+    Command (GameMsgIn (PlayCardMsg tableId card)) -> do
+      tablesMap <- readTVarIO tables
+      case tablesMap ^? ix tableId of
+        Nothing -> pass
+        Just table -> do
+          atomically $ writeTChan (table ^. #chan) (PlayCard username card)
     _ -> pass
   pure True
  where
@@ -122,7 +134,8 @@ joinTable client@Client{username} server@Server{tables, sendGameCommand} tableId
     InGame clientGameTableId -> do
       send $ Noti "You are already in game"
       readTVarIO tables
-        >>= (maybe pass (send . SuccessfullySubscribedToTable . mkTableInfo) . Map.lookup clientGameTableId)
+        >>= maybe pass (send . SuccessfullySubscribedToTable . mkTableInfo)
+        . Map.lookup clientGameTableId
     Idle -> do
       atomically $ do
         tablesMap <- readTVar tables
@@ -138,12 +151,20 @@ joinTable client@Client{username} server@Server{tables, sendGameCommand} tableId
                     modifyTVar' tables (ix tableId . #status .~ Started)
                     writeTChan (table ^. #chan) (StartGame four)
                   Nothing -> pass
-
                 modifyTVar' tables (ix tableId . #users %~ (username :))
                 writeTVar (client ^. #status) (InGame tableId)
                 sendMessage client $ Send (SuccessfullySubscribedToTable (mkTableInfo table))
+                clientsMap <- readTVar (server ^. #clients)
+                -- Notify others
+                forM_ tablesUsers \u -> do
+                  whenJust (clientsMap ^. at u) (\cl -> sendMessage cl $ Send (UpdateTable (mkTableInfo table)))
               Started -> do
-                sendMessage client $ Send (Noti "Game already started")
+                let tableUsers = table ^. #users
+                if username `elem` tableUsers
+                  then do
+                    modifyTVar' tables (ix tableId . #disconnectedUsers %~ filter (/= username))
+                    sendMessage client $ Send (SuccessfullySubscribedToTable (mkTableInfo table))
+                  else sendMessage client $ Send (Noti "Game already started")
  where
   send :: (ToJSON a) => a -> IO ()
   send msgToSend = WS.sendTextData (client ^. #connection) (BS.toStrict . Aeson.encode $ msgToSend)

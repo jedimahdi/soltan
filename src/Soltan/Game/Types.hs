@@ -50,6 +50,7 @@ data GameCommand
   = ChooseHokm Username Game.Suit
   | StartGame (Four Username)
   | PlayCard Username Game.Card
+  | NextRound
   deriving (Show)
 
 data TableCommand

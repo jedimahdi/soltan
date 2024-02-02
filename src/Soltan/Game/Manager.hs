@@ -1,10 +1,12 @@
+{-# HLINT ignore "Use infinitely" #-}
+{-# LANGUAGE NumericUnderscores #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
-{-# HLINT ignore "Use infinitely" #-}
 module Soltan.Game.Manager where
 
+import Control.Concurrent (threadDelay)
 import Control.Concurrent.STM (TChan)
-import Control.Concurrent.STM.TChan (readTChan)
+import Control.Concurrent.STM.TChan (readTChan, writeTChan)
 import Control.Lens (
   at,
   folded,
@@ -44,9 +46,8 @@ startGameManagerThread tableActionsChan gamesMapVar sendMessage log = do
       NewGame creator -> do
         tableChan <- newTChanIO
         id <- #nextTableId <<+= 1
-        let newTable = Table id tableChan [creator] [] Open
+        let newTable = Table id tableChan [] [] Open
         atomically $ modifyTVar' gamesMapVar (at id ?~ newTable)
-        liftIO $ sendMessage creator (Command GetTables)
         liftIO $ sendMessage creator (Command (JoinTable id))
         void $ liftIO $ forkFinally (gameLoop id tableChan sendMessage log) (\_ -> removeTable id)
  where
@@ -58,13 +59,13 @@ gameLoop id tableChan sendMessage log = do
   let initGame = Game.initialGame
   void $ usingStateT initGame loop
  where
-  broadcast :: Message -> StateT Game IO ()
-  broadcast msg = do
+  broadcast :: (Game -> Message) -> StateT Game IO ()
+  broadcast mkMsg = do
     game <- get
     case Game.getPlayers game of
       Nothing -> pass
       Just players ->
-        traverse_ ((liftIO . flip sendMessage msg) . view #playerName) (Game.playersToList players)
+        traverse_ ((liftIO . flip sendMessage (mkMsg game)) . view #playerName) (Game.playersToList players)
 
   performGameAction :: Username -> (Game.PlayerIndex -> Game.Action) -> StateT Game IO ()
   performGameAction username mkAction = do
@@ -78,25 +79,35 @@ gameLoop id tableChan sendMessage log = do
           Left e -> pass
           Right newGame -> do
             put newGame
-            broadcast (GameInfo id newGame)
+            broadcast (GameInfo id)
+
+  runCommand :: GameCommand -> StateT Game IO ()
+  runCommand (StartGame users) = do
+    gen <- newStdGen
+    game <- get
+    let startedGame = Game.startGame gen users game
+    put startedGame
+    broadcast (GameInfo id)
+  runCommand (PlayCard username card) = do
+    get
+      |> fmap (Game.performGameAction username (`Game.PlayCard` card))
+      |> chainedTo (either (const pass) (\game -> put game >> broadcast (GameInfo id)))
+  runCommand (ChooseHokm username suit) = do
+    get
+      |> fmap (Game.performGameAction username (`Game.ChooseHokm` suit))
+      |> chainedTo (either (const pass) (\game -> put game >> broadcast (GameInfo id)))
+  runCommand NextRound = do
+    gen <- newStdGen
+    modify' (Game.nextStage gen)
+    broadcast (GameInfo id)
 
   loop :: StateT Game IO ()
   loop = forever do
     cmd <- atomically $ readTChan tableChan
     liftIO $ log Debug $ "[Game] " <> show id <> " <- " <> show cmd
-    case cmd of
-      StartGame users -> do
-        gen <- newStdGen
-        game <- get
-        let startedGame = Game.startGame gen users game
-        put startedGame
-        broadcast (GameInfo id startedGame)
-      ChooseHokm username hokm -> do
-        performGameAction username (`Game.ChooseHokm` hokm)
-      PlayCard username card -> do
-        performGameAction username (`Game.PlayCard` card)
-
+    runCommand cmd
     game <- get
     when (Game.isEndOfTrick game) do
-      -- put (Game.nextStage)
-      pass
+      void $ liftIO $ forkIO do
+        threadDelay 1_000_000
+        atomically $ writeTChan tableChan NextRound

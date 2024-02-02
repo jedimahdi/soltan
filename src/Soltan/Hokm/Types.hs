@@ -103,6 +103,7 @@ data GameErr
   | NoChoosingHokmPhase
   | NotHakem
   | NotEndOfTrick
+  | NotInGame Username
   deriving (Show, Eq, Generic, ToJSON, FromJSON, Exception)
 
 data Game

@@ -50,6 +50,7 @@ data MsgOut
   | NewGameStateSummary TableId GameSummary
   | Noti Text
   | SuccessfullySubscribedToTable TableInfo
+  | UpdateTable TableInfo
   deriving stock (Generic, Show, Eq)
   deriving anyclass (ToJSON)
 
@@ -68,8 +69,9 @@ data MsgIn
   | JoinTable TableId
   | LeaveTable TableId
   | NewTable
+  | GameMsgIn GameMsgIn
   deriving
-    ( -- | GameMsgIn GameMsgIn
+    ( 
       Show
     , Eq
     , Generic
@@ -77,10 +79,10 @@ data MsgIn
     , ToJSON
     )
 
--- data GameMsgIn
---   = PlayCardMsg TableName Card
---   | ChooseHokmMsg TableName Suit
---   deriving (Show, Eq, Generic, FromJSON, ToJSON)
+data GameMsgIn
+  = PlayCardMsg TableId Card
+  | ChooseHokmMsg TableId Suit
+  deriving (Show, Eq, Generic, FromJSON, ToJSON)
 
 newtype TableDoesNotExistInLobby
   = TableDoesNotExistInLobby Text

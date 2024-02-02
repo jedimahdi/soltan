@@ -11,6 +11,12 @@ import Soltan.Hokm.Types hiding (Three, Two)
 import Soltan.Hokm.Utils
 import Prelude hiding (first, second)
 
+performGameAction :: Username -> (PlayerIndex -> Action) -> Game -> Either GameErr Game
+performGameAction username mkAction game = do
+  getPlayerIndexWithUsername username game
+    |> maybeToRight (NotInGame username)
+    |> chainedTo (\idx -> runAction (mkAction idx) game)
+
 runAction :: Action -> Game -> Either GameErr Game
 runAction action game = do
   validateAction game action
