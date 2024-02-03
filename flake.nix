@@ -3,68 +3,60 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    utils.url = "github:numtide/flake-utils";
-    pre-commit-hooks = {
-      url = "github:cachix/pre-commit-hooks.nix";
+    systems.url = "github:nix-systems/default";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    haskell-flake.url = "github:srid/haskell-flake";
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "utils";
     };
+    fourmolu-nix.url = "github:jedimahdi/fourmolu-nix";
   };
 
-  outputs = { self, nixpkgs, utils, pre-commit-hooks, ... }:
-    utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = import nixpkgs {
-          inherit system;
-          overlays = [
-            (final: _: { project.haskellPackages = final.haskell.packages.ghc948; })
-          ];
+  outputs = inputs:
+    inputs.flake-parts.lib.mkFlake { inherit inputs; } {
+      imports = [
+        inputs.haskell-flake.flakeModule
+        inputs.treefmt-nix.flakeModule
+        inputs.fourmolu-nix.flakeModule
+      ];
+      systems = import inputs.systems;
+      perSystem = { self', config, pkgs, ... }: {
+        haskellProjects.default = {
+          devShell = {
+            hlsCheck.enable = false;
+          };
+          autoWire = [ "packages" "apps" "checks" ];
         };
-      in
-      {
-        checks = {
-          pre-commit-check = pre-commit-hooks.lib.${system}.run {
-            src = ./.;
-            hooks = {
-              nixpkgs-fmt.enable = true;
-              hlint.enable = true;
+
+        treefmt = {
+          projectRootFile = "flake.nix";
+          programs = {
+            nixpkgs-fmt.enable = true;
+            fourmolu = {
+              enable = true;
+              package = config.fourmolu.wrapper;
             };
+            hlint.enable = true;
           };
         };
-        devShells.default =
-          pkgs.project.haskellPackages.shellFor
-            {
-              name = "soltan";
-              packages = _: [ ];
-              inherit (self.checks.${system}.pre-commit-check) shellHook;
-              buildInputs = with pkgs; [ zlib.dev ];
-              nativeBuildInputs = builtins.concatMap
-                builtins.attrValues
-                [
-                  ###################################################
-                  # Code styles:
-                  {
-                    inherit (pkgs) hlint nixpkgs-fmt stylish-haskell;
-                    inherit (pkgs.python3Packages) yamllint;
-                    inherit (pkgs.nodePackages) prettier;
-                  }
 
-                  ###################################################
-                  # Command line tools:
-                  {
-                    inherit (pkgs) entr ghcid git;
-                  }
+        fourmolu.settings = {
+          indentation = 2;
+        };
 
-                  ###################################################
-                  # Language servers:
-                  {
-                    inherit (pkgs) haskell-language-server;
-                  }
-
-                  ###################################################
-                  # Package managers:
-                  { inherit (pkgs) cabal-install; }
-                ];
-            };
-      });
+        devShells.default = pkgs.mkShell {
+          name = "soltan";
+          inputsFrom = [
+            config.treefmt.build.devShell
+            config.haskellProjects.default.outputs.devShell
+          ];
+          nativeBuildInputs = with pkgs; [
+            just
+          ];
+        };
+        packages.default = self'.packages.soltan;
+        apps.default = self'.apps.soltan;
+      };
+    };
 }

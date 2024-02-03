@@ -10,6 +10,7 @@ module Test.Socket.MsgSpec where
 -- import Soltan.Socket.Types
 -- import System.Random (getStdGen)
 import Test.Hspec (Spec, before, describe, it, shouldBe, shouldContain, shouldReturn)
+
 -- import UnliftIO (MonadUnliftIO)
 
 -- newtype TestApp a = TestApp {runApp :: ReaderT Lobby IO a}
@@ -49,6 +50,7 @@ import Test.Hspec (Spec, before, describe, it, shouldBe, shouldContain, shouldRe
 spec :: Spec
 spec = do
   pass
+
 --   describe "getTablesHandler" do
 --     it "should return empty table list for empty lobby" do
 --       cmds <- runTestApp Map.empty (runExceptT getTablesHandler)

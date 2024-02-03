@@ -10,12 +10,12 @@ import Soltan.Hokm.Utils (findWinnerOfTrick, mkChooseHokmState, mkPlayers, nextP
 import System.Random (RandomGen)
 import Prelude hiding (state)
 
-startGame :: RandomGen g => g -> Four Username -> Game -> Game
+startGame :: (RandomGen g) => g -> Four Username -> Game -> Game
 startGame gen (Four.Four u1 u2 u3 u4) GameBeforeStart =
   GameChoosingHokm <| mkChooseHokmState gen Player1 0 0 u1 u2 u3 u4
 startGame _ _ g = g
 
-nextStage :: RandomGen g => g -> Game -> Game
+nextStage :: (RandomGen g) => g -> Game -> Game
 nextStage gen (GameEndOfTrick state@(GameEndOfTrickState{..}))
   | isGameEnded newTeamAPoints newTeamBPoints =
       GameEnd

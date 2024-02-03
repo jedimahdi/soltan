@@ -71,8 +71,7 @@ data MsgIn
   | NewTable
   | GameMsgIn GameMsgIn
   deriving
-    ( 
-      Show
+    ( Show
     , Eq
     , Generic
     , FromJSON

@@ -21,7 +21,7 @@ module Soltan.Hokm (
   performGameAction,
 ) where
 
-import Soltan.Hokm.Action (runAction, performGameAction)
+import Soltan.Hokm.Action (performGameAction, runAction)
 import Soltan.Hokm.ActionValidation (validateAction)
 import Soltan.Hokm.Hokm (nextStage, startGame)
 import Soltan.Hokm.Types (Action (..), Card, Game, GameErr (..), GameSummary, PlayerIndex, Rank (..), Suit (..))

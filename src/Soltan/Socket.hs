@@ -135,7 +135,7 @@ joinTable client@Client{username} server@Server{tables, sendGameCommand} tableId
       send $ Noti "You are already in game"
       readTVarIO tables
         >>= maybe pass (send . SuccessfullySubscribedToTable . mkTableInfo)
-        . Map.lookup clientGameTableId
+          . Map.lookup clientGameTableId
     Idle -> do
       atomically $ do
         tablesMap <- readTVar tables

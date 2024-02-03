@@ -49,7 +49,7 @@ mkPlayers (u1, c1) (u2, c2) (u3, c3) (u4, c4) =
         )
     }
 
-mkChooseHokmState :: RandomGen g => g -> PlayerIndex -> Point -> Point -> Username -> Username -> Username -> Username -> ChoosingHokmState
+mkChooseHokmState :: (RandomGen g) => g -> PlayerIndex -> Point -> Point -> Username -> Username -> Username -> Username -> ChoosingHokmState
 mkChooseHokmState gen hakem teamAPoints teamBPoints u1 u2 u3 u4 =
   ChoosingHokmState
     { hakem
@@ -285,17 +285,17 @@ initialDeck :: [Card]
 initialDeck = Card <$> [minBound ..] <*> [minBound ..]
 
 -- Get a shuffled deck of cards.
-shuffledDeck :: RandomGen g => g -> [Card]
+shuffledDeck :: (RandomGen g) => g -> [Card]
 shuffledDeck gen = fst <| shuffle gen initialDeck
 
-fisherYatesStep :: RandomGen g => (Map Int a, g) -> (Int, a) -> (Map Int a, g)
+fisherYatesStep :: (RandomGen g) => (Map Int a, g) -> (Int, a) -> (Map Int a, g)
 fisherYatesStep (m, gen) (i, x) =
   ((M.insert j x . M.insert i (m M.! j)) m, gen')
  where
   (j, gen') = randomR (0, i) gen
 
 -- shuffle using the Fisher Yates algorithm
-shuffle :: RandomGen g => g -> [a] -> ([a], g)
+shuffle :: (RandomGen g) => g -> [a] -> ([a], g)
 shuffle gen [] = ([], gen)
 shuffle gen l =
   toElems $

@@ -1,6 +1,6 @@
+{-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -Wno-partial-fields #-}
-{-# LANGUAGE DeriveFoldable #-}
 
 module Soltan.Data.AtMostThree where
 
