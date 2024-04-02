@@ -20,7 +20,7 @@ checkAddClient server msg conn = do
           then pure Nothing
           else do
             client <- newClient username conn
-            writeTVar (server ^. #clients) <| Map.insert username client clientmap
+            writeTVar (server ^. #clients) <| Map.insert username conn clientmap
             pure <| Just client
     _ -> pure Nothing
 

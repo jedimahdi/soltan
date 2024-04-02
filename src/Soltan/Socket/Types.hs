@@ -6,7 +6,7 @@ module Soltan.Socket.Types where
 import Control.Concurrent.STM (TChan)
 import Data.Generics.Labels ()
 import qualified Network.WebSockets as WS
-import Pipes.Concurrent (Input, Output)
+import Soltan.App
 import Soltan.Data.Username (Username)
 import Soltan.Game.Types (GameCommand, Table, TableCommand, TableId, TableInfo)
 import Soltan.Hokm (Card, Game, GameErr, GameSummary, Suit)
@@ -17,12 +17,10 @@ import Prelude hiding (Show, show)
 type LogManager = TChan Text
 
 data Server = Server
-  { clients :: !(TVar (Map Username Client))
-  , tables :: !(TVar (Map TableId Table))
-  , logManager :: !LogManager
-  , sendTableCommand :: TableCommand -> IO ()
-  , sendGameCommand :: TableId -> GameCommand -> IO ()
+  { clients :: !(TVar (Map Username WS.Connection))
   , log :: Severity -> Text -> IO ()
+  , outgoingChannels :: !(TVar (Map Username (Channel Outgoing)))
+  , commandChannel :: Channel Command
   }
   deriving stock (Generic)
 
