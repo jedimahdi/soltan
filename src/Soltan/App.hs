@@ -11,7 +11,8 @@ import Soltan.Logger.Severity (Severity)
 
 data App = App
   { sendCommand :: SendCommand
-  , outgoingChannel :: TVar (Map Username (Channel Outgoing))
+  , commandChannel :: Channel Command
+  , outgoingChannels :: TVar (Map Username (Channel Outgoing))
   , roomsState :: RoomsState
   , log :: Severity -> Text -> IO ()
   }
@@ -29,12 +30,12 @@ runCommand app = \case
   AuthCommand c -> handleAuthCommand app c
 
 initialApp :: (Severity -> Text -> IO ()) -> TVar (Map Username (Channel Outgoing)) -> Channel Command -> IO App
-initialApp log outgoingChannel commandChannel = do
+initialApp log outgoingChannels commandChannel = do
   let sendCommand = writeChannel commandChannel
   roomsState <- initialRoomState
   pure App{..}
 
-runApp :: Channel Command -> App -> IO ()
-runApp commandChannel app = forever do
-  command <- readChannel commandChannel
+runApp :: App -> IO ()
+runApp app = forever do
+  command <- readChannel (app ^. #commandChannel)
   runCommand app command

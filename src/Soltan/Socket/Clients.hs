@@ -10,7 +10,7 @@ import Soltan.Logger.Severity (Severity (..))
 import Soltan.Socket.Types
 import Soltan.Socket.Utils
 
-checkAddClient :: Server -> MsgIn -> WS.Connection -> IO (Maybe Client)
+checkAddClient :: Server -> MsgIn -> WS.Connection -> IO (Maybe Username)
 checkAddClient server msg conn = do
   case msg of
     Login username -> do
@@ -19,9 +19,9 @@ checkAddClient server msg conn = do
         if Map.member username clientmap
           then pure Nothing
           else do
-            client <- newClient username conn
+            -- client <- newClient username conn
             writeTVar (server ^. #clients) <| Map.insert username conn clientmap
-            pure <| Just client
+            pure <| Just username
     _ -> pure Nothing
 
 newClient :: Username -> WS.Connection -> STM Client

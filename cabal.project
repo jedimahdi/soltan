@@ -1,0 +1,10 @@
+packages: .
+with-compiler: ghc-9.6.4
+optimization: False
+documentation: False
+write-ghc-environment-files: always
+tests: True
+
+package *
+  ghc-options: -fwrite-ide-info
+               -hiedir=.hie

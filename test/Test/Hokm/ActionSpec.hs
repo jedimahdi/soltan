@@ -17,7 +17,6 @@ import Soltan.Hokm.Types
 import Soltan.Hokm.Utils (findWinnerOfTrick, getBaseSuit, getBaseSuitEndOfTrick, initialDeck, mkPlayers, playersToList)
 import Test.Hspec (Spec, before, describe, it, shouldBe, shouldContain)
 import Test.Hspec.Hedgehog (forAll, hedgehog, (/==), (===))
-import Prelude hiding (state)
 
 choosingHokmFixture :: Game
 choosingHokmFixture =

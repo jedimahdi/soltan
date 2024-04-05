@@ -164,12 +164,12 @@ data GameEndState = GameEndState
 newtype Trick = Trick Natural
   deriving stock (Show, Generic)
   deriving newtype (Num, Eq, Ord)
-  deriving anyclass (ToJSON)
+  deriving anyclass (ToJSON, FromJSON)
 
 newtype Point = Point Natural
   deriving stock (Show, Generic)
   deriving newtype (Num, Eq, Ord)
-  deriving anyclass (ToJSON)
+  deriving anyclass (ToJSON, FromJSON)
 
 data PlayedCard = PlayedCard
   { card :: Card
@@ -223,7 +223,7 @@ data PlayerSummary = PlayerSummary
   , isTurnToPlay :: Bool
   }
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (ToJSON)
+  deriving anyclass (ToJSON, FromJSON)
 
 data GameSummaryStatus
   = SummaryNotStarted
@@ -232,7 +232,7 @@ data GameSummaryStatus
   | SummaryEndOfTrick
   | SummaryEndOfGame
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (ToJSON)
+  deriving anyclass (ToJSON, FromJSON)
 
 data GameSummary
   = GameSummaryBeforeStart
@@ -288,6 +288,6 @@ data GameSummary
       , rivalTeamPoints :: Point
       }
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (ToJSON)
+  deriving anyclass (ToJSON, FromJSON)
 
 makePrisms ''Game

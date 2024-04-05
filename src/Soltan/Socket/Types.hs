@@ -50,7 +50,7 @@ data MsgOut
   | SuccessfullySubscribedToTable TableInfo
   | UpdateTable TableInfo
   deriving stock (Generic, Show, Eq)
-  deriving anyclass (ToJSON)
+  deriving anyclass (ToJSON, FromJSON)
 
 data Err
   = AuthFailed
@@ -59,7 +59,7 @@ data Err
   | PlayerNotInTheGame
   | TableIsFull TableId
   deriving stock (Generic, Show, Eq)
-  deriving anyclass (ToJSON)
+  deriving anyclass (ToJSON, FromJSON)
 
 data MsgIn
   = GetTables

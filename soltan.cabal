@@ -1,6 +1,6 @@
-cabal-version: 2.4
+cabal-version: 3.0
 name:          soltan
-version:       0.0.0.0
+version:       0.1.0
 synopsis:      Hokm Game Haskell implementation
 description:
   Please see the README on Github at <https://github.com/jedimahdi/soltan#readme>
@@ -154,4 +154,4 @@ test-suite soltan-test
     , hspec-hedgehog
     , soltan
 
-  build-tool-depends: hspec-discover:hspec-discover >=2 && <3
+  build-tool-depends: hspec-discover:hspec-discover

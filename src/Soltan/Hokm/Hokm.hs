@@ -8,7 +8,6 @@ import Soltan.Hokm.Scoring (calculateNewPoints, calculateNewTricks, findWinnerTe
 import Soltan.Hokm.Types hiding (Three, Two)
 import Soltan.Hokm.Utils (findWinnerOfTrick, mkChooseHokmState, mkPlayers, nextPlayerIndexTurn, shuffledDeck)
 import System.Random (RandomGen)
-import Prelude hiding (state)
 
 startGame :: (RandomGen g) => g -> Four Username -> Game -> Game
 startGame gen (Four.Four u1 u2 u3 u4) GameBeforeStart =

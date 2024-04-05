@@ -3,7 +3,9 @@ module Soltan.App.Types where
 import Control.Lens (Lens')
 import Soltan.Data.Username (Username)
 
-data Outgoing = ErrorMsg Text
+data Outgoing
+  = ErrorMsg Text
+  | AuthSuccess
   deriving
     ( Show
     , Eq

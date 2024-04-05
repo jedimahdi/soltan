@@ -9,7 +9,6 @@ import Soltan.Hokm.Types (Card (..), Game (..), GameEndOfTrickState (..), Played
 import Soltan.Hokm.Utils
 import System.Random (getStdGen, newStdGen)
 import Test.Hspec (Spec, describe, it, shouldBe)
-import Prelude hiding (state)
 
 spec :: Spec
 spec = describe "nextStage" do

@@ -33,7 +33,6 @@ import Soltan.Socket.Types (Message (..), MsgIn (..))
 import System.Random (newStdGen)
 import UnliftIO.Concurrent (forkFinally, forkIO)
 import UnliftIO.STM (newTChanIO)
-import Prelude hiding (state)
 
 startGameManagerThread :: TChan TableCommand -> TVar (Map TableId Table) -> (Username -> Message -> IO ()) -> (Severity -> Text -> IO ()) -> IO ()
 startGameManagerThread tableActionsChan gamesMapVar sendMessage log = do

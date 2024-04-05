@@ -23,7 +23,8 @@ import Soltan.Socket.Utils
 
 import Soltan.App
 import Soltan.App.Channel (readChannel, writeChannel)
-import Soltan.App.Types
+import Soltan.App.Types hiding (Outgoing (..))
+import qualified Soltan.App.Types as App.Types
 
 runSocketServer ::
   Int ->
@@ -35,7 +36,7 @@ runSocketServer port outgoingChannels commandChannel log = do
   clients <- newTVarIO mempty
   let server = Server{..}
   log Info $ "Running server on port " <> show port
-  WS.runServer "0.0.0.0" port \pending -> do
+  WS.runServer "127.0.0.1" 9160 \pending -> do
     conn <- WS.acceptRequest pending
     WS.withPingThread conn 30 pass do
       app' conn server
@@ -50,30 +51,31 @@ app' conn server@Server{log} = do
       Nothing ->
         restore <| do
           pass
-      Just client -> do
-        restore (runClient server client) `finally` disconnect server client
+      Just username -> do
+        restore (runClient server conn username) `finally` disconnect server username
  where
   receiveLogin = do
     receiveJSON @MsgIn conn >>= \case
       Nothing -> throwIO (AssertionFailed "Parsing Login message failed")
       Just msg -> pure msg
 
-runClient :: Server -> Client -> IO ()
-runClient server@Server{log, outgoingChannels, commandChannel} client@Client{username} = do
+runClient :: Server -> WS.Connection -> Username -> IO ()
+runClient server@Server{log, outgoingChannels, commandChannel} conn username = do
   -- tablesMap <- readTVarIO (server ^. #tables)
   -- let isUserInTableAlready = find (elemOf (#users . folded) username) tablesMap
-  atomically $ sendMessage client (Send (AuthSuccess username))
+  -- atomically $ sendMessage client (Send (AuthSuccess username))
   -- case isUserInTableAlready of
   --   Nothing -> pass
   --   Just table -> do
   --     atomically $ sendMessage client (Command (JoinTable (table ^. #id)))
   channel <- newChannel
   atomically $ modifyTVar' outgoingChannels (Map.insert username channel)
+  writeChannel channel App.Types.AuthSuccess
   log Debug $ "User " <> show username <> " joined."
   Async.race_ (send channel) receive
  where
   receive = infinitely do
-    rawMsg <- WS.receiveData (client ^. #connection)
+    rawMsg <- WS.receiveData conn
     case Aeson.decode (BS.fromStrict rawMsg) of
       Nothing ->
         log Warning $ "[User] Parsing user msg failed: " <> show rawMsg
@@ -84,14 +86,18 @@ runClient server@Server{log, outgoingChannels, commandChannel} client@Client{use
         writeChannel commandChannel command
 
   send channel = do
-    msg <- readChannel channel
-    WS.sendTextData (client ^. #connection) (BS.toStrict . Aeson.encode $ msg)
+    outgoing <- readChannel channel
+
+    let msg :: MsgOut = case outgoing of
+          App.Types.AuthSuccess -> Noti "test"
+          _ -> AuthSuccess username
+    WS.sendTextData conn (BS.toStrict . Aeson.encode $ msg)
 
 -- continue <- handleMessage server client msg
 -- when continue serverThread
 
-disconnect :: Server -> Client -> IO ()
-disconnect server@Server{log, outgoingChannels} client@Client{username} = do
+disconnect :: Server -> Username -> IO ()
+disconnect server@Server{log, outgoingChannels} username = do
   removeClient server username
   atomically $ modifyTVar' outgoingChannels (Map.delete username)
 

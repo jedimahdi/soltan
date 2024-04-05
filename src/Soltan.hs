@@ -22,10 +22,8 @@ import UnliftIO.Concurrent (forkIO)
 
 type Clients = TVar (Map Username WS.Connection)
 
-main :: IO ()
-main = do
-  commandChannel <- newChannel
-  outgoingChannels :: TVar (Map Username (Channel Outgoing)) <- newTVarIO mempty
+runSoltanWith :: Channel Command -> TVar (Map Username (Channel Outgoing)) -> IO ()
+runSoltanWith commandChannel outgoingChannels = do
   logChan <- newTChanIO
   let
     log :: Severity -> Text -> IO ()
@@ -35,7 +33,13 @@ main = do
   app <- initialApp log outgoingChannels commandChannel
   startLoggerThread logChan
   _ <- forkIO $ runSocketServer 5000 outgoingChannels commandChannel log
-  runApp commandChannel app
+  runApp app
+
+runSoltan :: IO ()
+runSoltan = do
+  commandChannel <- newChannel
+  outgoingChannels :: TVar (Map Username (Channel Outgoing)) <- newTVarIO mempty
+  runSoltanWith commandChannel outgoingChannels
 
 -- main :: IO ()
 -- main = do

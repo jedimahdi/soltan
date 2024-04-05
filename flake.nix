@@ -13,8 +13,8 @@
       {
         devShells.default =
           pkgs.mkShell {
-            buildInputs = with pkgs; [ zlib ];
-            nativeBuildInputs = [ ];
+            buildInputs = [ pkgs.zlib ];
+            nativeBuildInputs = [ pkgs.just pkgs.ghcid ];
           };
       });
 }

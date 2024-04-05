@@ -6,7 +6,6 @@ import qualified Soltan.Data.Four as Four
 import Soltan.Hokm.Types (Card (..), GameEndOfTrickState (..), PlayedCard (..), PlayerIndex (..), Rank (..), Suit (..))
 import Soltan.Hokm.Utils
 import Test.Hspec (Spec, describe, it, shouldBe)
-import Prelude hiding (state)
 
 spec :: Spec
 spec = describe "findWinnerOfTrick" do

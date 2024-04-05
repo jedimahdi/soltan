@@ -12,7 +12,6 @@ import qualified Soltan.Data.Username as Username
 import Soltan.Hokm
 import Soltan.Hokm.Types hiding (username)
 import Soltan.Hokm.Utils (nextPlayerIndexTurn, splitFourWay)
-import Prelude hiding (state)
 
 genShuffledCards :: Int -> Gen [Card]
 genShuffledCards n = do

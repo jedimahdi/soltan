@@ -14,7 +14,6 @@ import Soltan.Hokm.ActionValidation
 import Soltan.Hokm.Types
 import Test.Hspec (Spec, describe, it, shouldBe)
 import Test.Hspec.Hedgehog (forAll, hedgehog, (/==), (===))
-import Prelude hiding (state)
 
 initialGame :: Game
 initialGame = GameBeforeStart

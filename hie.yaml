@@ -1,0 +1,10 @@
+cradle:
+  cabal:
+    - path: "./src"
+      component: "lib:soltan"
+
+    - path: "./app/Main.hs"
+      component: "soltan:exe:soltan"
+
+    - path: "./test"
+      component: "soltan:test:soltan-test"

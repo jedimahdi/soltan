@@ -17,7 +17,7 @@ import qualified Soltan.Hokm as Game
 import Text.Show (show)
 import UnliftIO.Concurrent (forkFinally, forkIO)
 import UnliftIO.STM (newTChanIO)
-import Prelude hiding (show, state)
+import Prelude hiding (show)
 
 type TableId = Int
 
@@ -44,7 +44,7 @@ data TableInfo = TableInfo
   , disconnectedUsers :: [Username]
   }
   deriving stock (Generic, Eq, Show)
-  deriving anyclass (ToJSON)
+  deriving anyclass (ToJSON, FromJSON)
 
 data GameCommand
   = ChooseHokm Username Game.Suit
