@@ -89,7 +89,7 @@ runClient server@Server{log, outgoingChannels, commandChannel} conn username = d
     outgoing <- readChannel channel
 
     let msg :: MsgOut = case outgoing of
-          App.Types.AuthSuccess -> Noti "test"
+          App.Types.AuthSuccess -> AuthSuccess username
           _ -> AuthSuccess username
     WS.sendTextData conn (BS.toStrict . Aeson.encode $ msg)
 

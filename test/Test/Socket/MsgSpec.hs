@@ -46,8 +46,7 @@ spec = do
       WS.runClient "127.0.0.1" 9160 "/" $ \conn -> do
         sendJSON conn $ Login "test"
         msg <- receiveJSON conn
-        print msg
-        msg `shouldBe` Noti "test"
+        msg `shouldBe` AuthSuccess "test"
 
 --   describe "getTablesHandler" do
 --     it "should return empty table list for empty lobby" do

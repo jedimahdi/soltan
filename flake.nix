@@ -12,9 +12,12 @@
       in
       {
         devShells.default =
+          let buildInputs = [ pkgs.zlib ];
+          in
           pkgs.mkShell {
-            buildInputs = [ pkgs.zlib ];
+            inherit buildInputs;
             nativeBuildInputs = [ pkgs.just pkgs.ghcid ];
+            LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath buildInputs;
           };
       });
 }
